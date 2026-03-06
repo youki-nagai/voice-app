@@ -125,8 +125,8 @@
         .message.user { background: #1a3a5c; align-self: flex-end; color: #c8e0f8; }
         .message.interim { background: #1a2a3c; align-self: flex-end; color: #7aa8d4; opacity: 0.7; font-style: italic; }
         .message.ai { background: #1a1a2e; align-self: flex-start; color: #b8b8e8; }
-        .message.system { background: #1a2a1a; align-self: center; color: #88c888; font-size: 12px; text-align: center; display: flex; align-items: center; justify-content: center; }
-        .message.system.processing { background: #2a1e1a; color: #f59e0b; }
+        .message.system { background: #1a2a1a; align-self: center; color: #88c888; font-size: 12px; text-align: center; }
+        .message.system.processing { background: #2a1e1a; color: #f59e0b; display: flex; align-items: center; justify-content: center; }
         .message.error { background: #2e1a1a; align-self: center; color: #e88888; font-size: 12px; }
         .message.file-change { background: #1a2e2a; align-self: flex-start; color: #88c8b8; font-size: 12px; font-family: monospace; }
         .message.commit { background: #2a2e1a; align-self: center; color: #c8c888; font-size: 12px; font-family: monospace; }
@@ -405,7 +405,75 @@
             currentAiElement = null;
         }
 
-        const GIT_KEYWORDS = ['git確認', 'git チェック', 'ghコマンド', 'gh コマンド', 'gitステータス', 'git ステータス', 'git状態', 'git 状態'];
+        // Git操作コマンドのパターン定義
+        // 音声認識の表記揺れ（全角/半角、カタカナ/英字）に対応
+        const GIT_COMMANDS = [
+            {
+                patterns: [
+                    'git確認', 'git チェック', 'gitチェック',
+                    'ghコマンド', 'gh コマンド', 'ジーエイチコマンド', 'ジーエッチコマンド',
+                    'gitステータス', 'git ステータス', 'git状態', 'git 状態',
+                    'ギット確認', 'ギットチェック', 'ギット状態',
+                ],
+                action: 'check',
+            },
+            {
+                patterns: [
+                    'プッシュして', 'pushして', 'push して', 'ぷっしゅして',
+                    'プッシュする', 'pushする', 'push する',
+                    'gitpush', 'gitプッシュ', 'ギットプッシュ',
+                    'コードをプッシュ', 'プッシュお願い',
+                ],
+                action: 'push',
+            },
+            {
+                patterns: [
+                    'pr作成', 'pr 作成', 'プルリクエスト作成', 'プルリクエスト 作成',
+                    'prを作', 'pr を作', 'プルリク作', 'プルリクエストを作',
+                    'プルリク出', 'プルリクエスト出', 'prを出', 'pr出',
+                    'ピーアール作', 'ピーアール出',
+                ],
+                action: 'pr',
+            },
+            {
+                patterns: [
+                    'ブランチ作成', 'ブランチを作', 'ブランチ 作成',
+                    'branch作成', 'branch を作', 'ブランチ切',
+                    'ブランチを切', '新しいブランチ',
+                ],
+                action: 'branch',
+            },
+            {
+                patterns: [
+                    'gitログ', 'git ログ', 'git log', 'gitlog',
+                    'コミットログ', 'コミット履歴', 'コミット一覧',
+                    'ギットログ', '履歴を見', 'ログを見',
+                ],
+                action: 'log',
+            },
+            {
+                patterns: [
+                    'git status', 'ギットステータス',
+                    '変更ファイル', '変更一覧', '差分確認',
+                ],
+                action: 'status',
+            },
+        ];
+
+        function detectGitCommand(text) {
+            const normalized = text.trim().toLowerCase()
+                .replace(/\s+/g, '')
+                .replace(/[ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ０１２３４５６７８９]/g,
+                    s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0));
+            for (const cmd of GIT_COMMANDS) {
+                for (const pattern of cmd.patterns) {
+                    if (normalized.includes(pattern.replace(/\s+/g, ''))) {
+                        return cmd.action;
+                    }
+                }
+            }
+            return null;
+        }
 
         function checkGitStatus(showInChat) {
             return fetch('/api/git/check')
@@ -450,9 +518,124 @@
                 });
         }
 
-        function isGitCheckCommand(text) {
-            const normalized = text.trim().toLowerCase();
-            return GIT_KEYWORDS.some(kw => normalized.includes(kw));
+        function executeGitCommand(action, originalText) {
+            addProcessingMessage('Git操作実行中...');
+
+            switch (action) {
+                case 'check':
+                    clearAllProcessingMessages();
+                    checkGitStatus(true);
+                    break;
+                case 'push':
+                    fetch('/api/git/push', { method: 'POST' })
+                        .then(r => r.json())
+                        .then(data => {
+                            clearAllProcessingMessages();
+                            if (data.success) {
+                                addMessage(`push完了: ${data.output || 'OK'}`, 'system');
+                            } else {
+                                addMessage(`push失敗: ${data.error}`, 'error');
+                            }
+                            checkGitStatus(false);
+                        })
+                        .catch(e => {
+                            clearAllProcessingMessages();
+                            addMessage(`pushエラー: ${e.message}`, 'error');
+                        });
+                    break;
+                case 'pr':
+                    fetch('/api/git/log').then(r => r.json()).then(logData => {
+                        const title = logData.log && logData.log.length > 0
+                            ? logData.log[0].replace(/^[a-f0-9]+\s+/, '')
+                            : originalText;
+                        fetch('/api/git/pr', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ title: title, body: `音声入力: ${originalText}` }),
+                        })
+                            .then(r => r.json())
+                            .then(data => {
+                                clearAllProcessingMessages();
+                                if (data.success) {
+                                    addMessage(`PR作成完了: ${data.url}`, 'system');
+                                } else {
+                                    addMessage(`PR作成失敗: ${data.error}`, 'error');
+                                }
+                            })
+                            .catch(e => {
+                                clearAllProcessingMessages();
+                                addMessage(`PR作成エラー: ${e.message}`, 'error');
+                            });
+                    });
+                    break;
+                case 'branch':
+                    // テキストからブランチ名を抽出（なければタイムスタンプ）
+                    const branchName = extractBranchName(originalText);
+                    fetch('/api/git/branch', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: branchName }),
+                    })
+                        .then(r => r.json())
+                        .then(data => {
+                            clearAllProcessingMessages();
+                            if (data.success) {
+                                addMessage(`ブランチ作成完了: ${data.branch}`, 'system');
+                            } else {
+                                addMessage(`ブランチ作成失敗: ${data.error}`, 'error');
+                            }
+                            checkGitStatus(false);
+                        })
+                        .catch(e => {
+                            clearAllProcessingMessages();
+                            addMessage(`ブランチ作成エラー: ${e.message}`, 'error');
+                        });
+                    break;
+                case 'log':
+                    fetch('/api/git/log')
+                        .then(r => r.json())
+                        .then(data => {
+                            clearAllProcessingMessages();
+                            if (data.log && data.log.length > 0) {
+                                addMessage(data.log.join('\n'), 'system');
+                            } else {
+                                addMessage('コミット履歴がありません', 'system');
+                            }
+                        })
+                        .catch(e => {
+                            clearAllProcessingMessages();
+                            addMessage(`ログ取得エラー: ${e.message}`, 'error');
+                        });
+                    break;
+                case 'status':
+                    fetch('/api/git/status')
+                        .then(r => r.json())
+                        .then(data => {
+                            clearAllProcessingMessages();
+                            const lines = [`branch: ${data.branch}`];
+                            if (data.changed_files.length > 0) {
+                                lines.push(`変更ファイル:\n${data.changed_files.join('\n')}`);
+                            } else {
+                                lines.push('変更なし（クリーン）');
+                            }
+                            addMessage(lines.join('\n'), 'system');
+                        })
+                        .catch(e => {
+                            clearAllProcessingMessages();
+                            addMessage(`ステータス取得エラー: ${e.message}`, 'error');
+                        });
+                    break;
+            }
+        }
+
+        function extractBranchName(text) {
+            // 「ブランチ名XXXで作って」のようなパターンからブランチ名を抽出
+            const match = text.match(/(?:ブランチ名?|branch)\s*[:：]?\s*([a-zA-Z0-9/_-]+)/i);
+            if (match) return match[1];
+            // タイムスタンプベースのフォールバック
+            const now = new Date();
+            const ts = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+            return `feature/voice-${ts}`;
         }
 
         function sendMessage(text, skipUserDisplay) {
@@ -462,9 +645,10 @@
                 addMessage(text, 'user');
             }
 
-            // gitチェックコマンドの場合はAPIを直接呼ぶ
-            if (isGitCheckCommand(text)) {
-                checkGitStatus(true);
+            // gitコマンドの場合はAPIを直接呼ぶ
+            const gitAction = detectGitCommand(text);
+            if (gitAction) {
+                executeGitCommand(gitAction, text);
                 return;
             }
 
