@@ -693,24 +693,34 @@
                 
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
-                
-                function readStream() {
-                    return reader.read().then(({ done, value }) => {
-                        if (done) return;
-                        
-                        const chunk = decoder.decode(value);
-                        const lines = chunk.split('\n');
-                        
-                        for (const line of lines) {
-                            if (line.startsWith('data: ')) {
-                                try {
-                                    const data = JSON.parse(line.slice(6));
-                                    handleServerMessage(data);
-                                } catch (e) {
-                                    console.error('JSON parse error:', e);
-                                }
+                let buffer = '';
+
+                function processLines(text) {
+                    for (const line of text.split('\n')) {
+                        const trimmed = line.trim();
+                        if (trimmed.startsWith('data: ')) {
+                            try {
+                                const data = JSON.parse(trimmed.slice(6));
+                                handleServerMessage(data);
+                            } catch (e) {
+                                console.error('JSON parse error:', e, trimmed);
                             }
                         }
+                    }
+                }
+
+                function readStream() {
+                    return reader.read().then(({ done, value }) => {
+                        if (done) {
+                            // 残りバッファを処理
+                            if (buffer.trim()) processLines(buffer);
+                            return;
+                        }
+
+                        buffer += decoder.decode(value, { stream: true });
+                        const lines = buffer.split('\n');
+                        buffer = lines.pop(); // 未完成の最後の行をバッファに残す
+                        processLines(lines.join('\n'));
                         
                         return readStream();
                     });
