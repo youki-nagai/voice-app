@@ -37,3 +37,16 @@ class TestChatServiceParseResponse:
 
         assert result.explanation == "回答のみ"
         assert result.file_changes == []
+
+    def test_given_text_before_json_when_parse_then_extracts_json(self):
+        text = (
+            "タイトルを変更します。\n\n"
+            '{"explanation": "タイトル変更", "file_changes": '
+            '[{"path": "index.html", "content": "<h1>v2</h1>", "action": "update"}]}'
+        )
+        result = self._service.parse_response(text)
+
+        assert result.explanation == "タイトル変更"
+        assert len(result.file_changes) == 1
+        assert result.file_changes[0].path == "index.html"
+        assert result.file_changes[0].action == "update"
