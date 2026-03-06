@@ -109,18 +109,72 @@
             border-top: 1px solid #222;
             display: flex;
             align-items: center;
-            justify-content: center;
             gap: 16px;
         }
 
+        .input-section {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 24px;
+            padding: 8px 16px;
+        }
+
+        #text-input {
+            flex: 1;
+            background: none;
+            border: none;
+            color: #e0e0e0;
+            font-size: 14px;
+            outline: none;
+            padding: 6px 0;
+        }
+
+        #text-input::placeholder {
+            color: #666;
+        }
+
+        .send-button {
+            background: #1a3a5c;
+            border: none;
+            color: #c8e0f8;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .send-button:hover {
+            background: #2a4a6c;
+        }
+
+        .send-button:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        .voice-section {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
         #mic-button {
-            width: 64px;
-            height: 64px;
+            width: 48px;
+            height: 48px;
             border-radius: 50%;
             border: 2px solid #333;
             background: #1a1a1a;
             color: #888;
-            font-size: 24px;
+            font-size: 20px;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -131,7 +185,13 @@
         #mic-button:hover { border-color: #555; color: #aaa; }
         #mic-button.active { border-color: #ef4444; background: #2a1010; color: #ef4444; box-shadow: 0 0 20px rgba(239, 68, 68, 0.2); }
 
-        #silence-timer { font-size: 12px; color: #666; min-width: 80px; text-align: center; }
+        #silence-timer { font-size: 11px; color: #666; min-width: 60px; text-align: center; }
+
+        .silence-info {
+            font-size: 10px;
+            color: #555;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -146,23 +206,37 @@
     <div id="chat"></div>
 
     <div id="controls">
-        <span id="silence-timer"></span>
-        <button id="mic-button" title="音声入力">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                <line x1="12" y1="19" x2="12" y2="23"/>
-                <line x1="8" y1="23" x2="16" y2="23"/>
-            </svg>
-        </button>
-        <span id="silence-info" style="font-size: 11px; color: #555; min-width: 80px; text-align: center;">
-            1秒の沈黙で送信
-        </span>
+        <div class="input-section">
+            <input type="text" id="text-input" placeholder="テキストで入力..." />
+            <button class="send-button" id="send-button" title="送信">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="22" y1="2" x2="11" y2="13"/>
+                    <polygon points="22,2 15,22 11,13 2,9"/>
+                </svg>
+            </button>
+        </div>
+        
+        <div class="voice-section">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                <span id="silence-timer"></span>
+                <button id="mic-button" title="音声入力">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                        <line x1="12" y1="19" x2="12" y2="23"/>
+                        <line x1="8" y1="23" x2="16" y2="23"/>
+                    </svg>
+                </button>
+                <span class="silence-info">1秒の沈黙で送信</span>
+            </div>
+        </div>
     </div>
 
     <script>
         const chat = document.getElementById('chat');
         const micButton = document.getElementById('mic-button');
+        const textInput = document.getElementById('text-input');
+        const sendButton = document.getElementById('send-button');
         const statusDot = document.getElementById('status-dot');
         const statusText = document.getElementById('status-text');
         const silenceTimer = document.getElementById('silence-timer');
@@ -299,6 +373,26 @@
                 }
             });
             processingElements = [];
+        }
+
+        function sendMessage(text) {
+            if (!text.trim() || isWaitingForAI) return;
+
+            // ユーザーメッセージを表示
+            addMessage(text, 'user');
+
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                // メッセージ送信直後にローディング表示を開始
+                addProcessingMessage('送信中...');
+                isWaitingForAI = true;
+                statusDot.className = 'status-dot processing';
+                statusText.textContent = 'AI処理中';
+                
+                ws.send(JSON.stringify({
+                    type: 'voice_complete',
+                    text: text,
+                }));
+            }
         }
 
         function setupSpeechRecognition() {
@@ -447,6 +541,7 @@
             }
         }
 
+        // イベントリスナー
         micButton.addEventListener('click', () => {
             if (isRecording) {
                 if (finalTranscript.trim()) {
@@ -458,9 +553,36 @@
             }
         });
 
+        sendButton.addEventListener('click', () => {
+            const text = textInput.value.trim();
+            if (text) {
+                sendMessage(text);
+                textInput.value = '';
+            }
+        });
+
+        textInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                const text = textInput.value.trim();
+                if (text) {
+                    sendMessage(text);
+                    textInput.value = '';
+                }
+            }
+        });
+
+        // AI処理中は送信ボタンを無効化
+        function updateSendButtonState() {
+            sendButton.disabled = isWaitingForAI;
+        }
+
         // 初期化
         connectWebSocket();
         setupSpeechRecognition();
+        
+        // AI状態変化に応じて送信ボタンの状態を更新
+        setInterval(updateSendButtonState, 100);
     </script>
 </body>
 </html>
