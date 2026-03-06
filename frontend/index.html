@@ -370,9 +370,8 @@
             }
 
             if (ws && ws.readyState === WebSocket.OPEN) {
-                // AI応答待機状態を開始
+                // 音声送信後は即座にステータスを更新（サーバーからのメッセージを待つ）
                 isWaitingForAI = true;
-                addProcessingMessage('AIが回答を生成しています...');
                 statusDot.className = 'status-dot processing';
                 statusText.textContent = 'AI処理中';
                 
