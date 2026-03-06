@@ -248,7 +248,6 @@
         let finalTranscript = '';
         let processingElements = [];
         let isWaitingForAI = false;
-        let currentEventSource = null;
         const SILENCE_DELAY = 1000;
 
         function initializeApp() {
@@ -284,20 +283,12 @@
                     isWaitingForAI = false;
                     clearAllProcessingMessages();
                     updateStatusAfterAI();
-                    if (currentEventSource) {
-                        currentEventSource.close();
-                        currentEventSource = null;
-                    }
                     break;
                 case 'error':
                     isWaitingForAI = false;
                     clearAllProcessingMessages();
                     addMessage(msg.text, 'error');
                     updateStatusAfterAI();
-                    if (currentEventSource) {
-                        currentEventSource.close();
-                        currentEventSource = null;
-                    }
                     break;
             }
         }
@@ -371,16 +362,7 @@
             statusDot.className = 'status-dot processing';
             statusText.textContent = 'AI処理中';
             
-            // EventSourceでSSEストリームを開始
-            currentEventSource = new EventSource('/api/voice/stream', {
-                method: 'POST',
-                body: JSON.stringify({ text: text }),
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            // EventSourceはPOSTを直接サポートしないため、fetchを使用
+            // fetch + ReadableStream でSSEを受信
             fetch('/api/voice/stream', {
                 method: 'POST',
                 headers: {
@@ -589,14 +571,9 @@
             }
         });
 
-        function updateSendButtonState() {
-            sendButton.disabled = isWaitingForAI;
-        }
-
         // 初期化
         initializeApp();
         setupSpeechRecognition();
-        setInterval(updateSendButtonState, 100);
     </script>
 </body>
 </html>
