@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.chat.router import router as chat_router
+from app.git.router import router as git_router
 from app.voice.router import router as voice_router
 
 app = FastAPI(title="voice-app")
@@ -19,6 +20,7 @@ app.add_middleware(
 
 app.include_router(voice_router, prefix="/api/voice", tags=["voice"])
 app.include_router(chat_router, prefix="/api/chat", tags=["chat"])
+app.include_router(git_router, prefix="/api/git", tags=["git"])
 
 frontend_path = Path(__file__).parent.parent.parent / "frontend"
 app.mount("/", StaticFiles(directory=str(frontend_path), html=True), name="frontend")
