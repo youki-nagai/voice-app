@@ -29,7 +29,7 @@ class ChatService:
     _global_history: ClassVar[list[dict]] = []
 
     def __init__(self, api_key: str):
-        self._client = anthropic.Anthropic(api_key=api_key)
+        self._client = anthropic.AsyncAnthropic(api_key=api_key)
         self._history: list[dict] = self._global_history.copy()
 
     async def stream_generate_code(
@@ -47,13 +47,13 @@ class ChatService:
         self._sync_global_history()
 
         full_text = ""
-        with self._client.messages.stream(
+        async with self._client.messages.stream(
             model="claude-sonnet-4-20250514",
             max_tokens=8192,
             system=SYSTEM_PROMPT,
             messages=self._history,
         ) as stream:
-            for text in stream.text_stream:
+            async for text in stream.text_stream:
                 full_text += text
                 yield text
 
