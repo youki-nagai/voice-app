@@ -199,7 +199,7 @@
         <h1>voice-app</h1>
         <div class="status-indicator">
             <div class="status-dot" id="status-dot"></div>
-            <span id="status-text">未接続</span>
+            <span id="status-text">準備中</span>
         </div>
     </header>
 
@@ -241,7 +241,6 @@
         const statusText = document.getElementById('status-text');
         const silenceTimer = document.getElementById('silence-timer');
 
-        let ws = null;
         let recognition = null;
         let isRecording = false;
         let silenceTimeout = null;
@@ -249,46 +248,27 @@
         let finalTranscript = '';
         let processingElements = [];
         let isWaitingForAI = false;
+        let currentEventSource = null;
         const SILENCE_DELAY = 1000;
 
-        function connectWebSocket() {
-            const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            ws = new WebSocket(`${protocol}//${location.host}/api/voice/ws`);
-
-            ws.onopen = () => {
-                statusDot.className = 'status-dot connected';
-                statusText.textContent = '接続済み';
-                // WebSocket接続完了後に自動で音声入力を開始
-                setTimeout(() => {
-                    startRecording();
-                }, 500);
-            };
-
-            ws.onclose = () => {
-                statusDot.className = 'status-dot';
-                statusText.textContent = '未接続';
-                setTimeout(connectWebSocket, 3000);
-            };
-
-            ws.onmessage = (event) => {
-                const msg = JSON.parse(event.data);
-                handleServerMessage(msg);
-            };
+        function initializeApp() {
+            statusDot.className = 'status-dot connected';
+            statusText.textContent = '準備完了';
+            // アプリ初期化後に自動で音声入力を開始
+            setTimeout(() => {
+                startRecording();
+            }, 500);
         }
 
         function handleServerMessage(msg) {
             switch (msg.type) {
-                case 'transcript':
-                    break;
                 case 'status':
-                    // サーバー側のステータスメッセージでローディングメッセージを更新
                     updateProcessingMessage(msg.text);
                     isWaitingForAI = true;
                     statusDot.className = 'status-dot processing';
                     statusText.textContent = 'AI処理中';
                     break;
                 case 'ai_response':
-                    // AI回答を受信 → AI待機状態を解除してからメッセージを表示
                     isWaitingForAI = false;
                     clearAllProcessingMessages();
                     addMessage(msg.text, 'ai');
@@ -301,16 +281,23 @@
                     addMessage(`committed: ${msg.message}`, 'commit');
                     break;
                 case 'complete':
-                    // 処理完了時にAI待機状態をリセット
                     isWaitingForAI = false;
                     clearAllProcessingMessages();
                     updateStatusAfterAI();
+                    if (currentEventSource) {
+                        currentEventSource.close();
+                        currentEventSource = null;
+                    }
                     break;
                 case 'error':
                     isWaitingForAI = false;
                     clearAllProcessingMessages();
                     addMessage(msg.text, 'error');
                     updateStatusAfterAI();
+                    if (currentEventSource) {
+                        currentEventSource.close();
+                        currentEventSource = null;
+                    }
                     break;
             }
         }
@@ -321,7 +308,7 @@
                 statusText.textContent = '録音中';
             } else {
                 statusDot.className = 'status-dot connected';
-                statusText.textContent = '接続済み';
+                statusText.textContent = '準備完了';
             }
         }
 
@@ -346,13 +333,11 @@
             chat.appendChild(div);
             chat.scrollTop = chat.scrollHeight;
             
-            // 処理メッセージを配列で管理
             processingElements.push(div);
             return div;
         }
 
         function updateProcessingMessage(newText) {
-            // 既存の処理メッセージがあれば更新、なければ新規作成
             if (processingElements.length > 0) {
                 const lastElement = processingElements[processingElements.length - 1];
                 const textSpan = lastElement.querySelector('span:last-child');
@@ -366,7 +351,6 @@
         }
 
         function clearAllProcessingMessages() {
-            // 全ての処理メッセージを削除
             processingElements.forEach(element => {
                 if (element && element.parentNode) {
                     element.remove();
@@ -381,18 +365,66 @@
             // ユーザーメッセージを表示
             addMessage(text, 'user');
 
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                // メッセージ送信直後にローディング表示を開始
-                addProcessingMessage('送信中...');
-                isWaitingForAI = true;
-                statusDot.className = 'status-dot processing';
-                statusText.textContent = 'AI処理中';
+            // SSEで送信
+            addProcessingMessage('送信中...');
+            isWaitingForAI = true;
+            statusDot.className = 'status-dot processing';
+            statusText.textContent = 'AI処理中';
+            
+            // EventSourceでSSEストリームを開始
+            currentEventSource = new EventSource('/api/voice/stream', {
+                method: 'POST',
+                body: JSON.stringify({ text: text }),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            // EventSourceはPOSTを直接サポートしないため、fetchを使用
+            fetch('/api/voice/stream', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'text/event-stream'
+                },
+                body: JSON.stringify({ text: text })
+            }).then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
                 
-                ws.send(JSON.stringify({
-                    type: 'voice_complete',
-                    text: text,
-                }));
-            }
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                
+                function readStream() {
+                    return reader.read().then(({ done, value }) => {
+                        if (done) return;
+                        
+                        const chunk = decoder.decode(value);
+                        const lines = chunk.split('\n');
+                        
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                try {
+                                    const data = JSON.parse(line.slice(6));
+                                    handleServerMessage(data);
+                                } catch (e) {
+                                    console.error('JSON parse error:', e);
+                                }
+                            }
+                        }
+                        
+                        return readStream();
+                    });
+                }
+                
+                return readStream();
+            }).catch(error => {
+                isWaitingForAI = false;
+                clearAllProcessingMessages();
+                addMessage(`エラー: ${error.message}`, 'error');
+                updateStatusAfterAI();
+            });
         }
 
         function setupSpeechRecognition() {
@@ -481,22 +513,9 @@
                 interimElement = null;
             }
 
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                // 音声送信直後にローディング表示を開始
-                addProcessingMessage('送信中...');
-                isWaitingForAI = true;
-                statusDot.className = 'status-dot processing';
-                statusText.textContent = 'AI処理中';
-                
-                ws.send(JSON.stringify({
-                    type: 'voice_complete',
-                    text: finalTranscript,
-                }));
-            }
-
+            sendMessage(finalTranscript);
             finalTranscript = '';
             silenceTimer.textContent = '送信済み';
-            // マイクは切らない（常時ON）
         }
 
         function startRecording() {
@@ -510,7 +529,6 @@
             interimElement = null;
             micButton.classList.add('active');
             
-            // AI待機中でなければ録音状態を表示
             if (!isWaitingForAI) {
                 statusDot.className = 'status-dot recording';
                 statusText.textContent = '録音中';
@@ -524,10 +542,9 @@
             isRecording = false;
             micButton.classList.remove('active');
             
-            // AI待機中でなければ接続状態を表示
             if (!isWaitingForAI) {
                 statusDot.className = 'status-dot connected';
-                statusText.textContent = '接続済み';
+                statusText.textContent = '準備完了';
             }
             silenceTimer.textContent = '';
 
@@ -572,16 +589,13 @@
             }
         });
 
-        // AI処理中は送信ボタンを無効化
         function updateSendButtonState() {
             sendButton.disabled = isWaitingForAI;
         }
 
         // 初期化
-        connectWebSocket();
+        initializeApp();
         setupSpeechRecognition();
-        
-        // AI状態変化に応じて送信ボタンの状態を更新
         setInterval(updateSendButtonState, 100);
     </script>
 </body>
