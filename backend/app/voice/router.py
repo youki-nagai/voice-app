@@ -14,7 +14,7 @@ router = APIRouter()
 
 @router.post("/stream")
 async def stream(request: Request):
-    """SSEストリームでAI応答を配信"""
+    """SSEストリームでAI応答をリアルタイム配信"""
 
     body = await request.body()
     data = json.loads(body.decode())
@@ -33,22 +33,25 @@ async def stream(request: Request):
 
             project_context = code_executor.get_project_context()
 
-            yield {"data": json.dumps({"type": "status", "text": "AIがコードを生成中..."})}
-
-            ai_response = await chat_service.generate_code(
+            # ストリーミングでAI応答をリアルタイム配信
+            full_response = ""
+            async for chunk in chat_service.stream_generate_code(
                 instruction=user_instruction,
                 project_context=project_context,
-            )
+            ):
+                full_response += chunk
+                yield {"data": json.dumps({"type": "ai_chunk", "text": chunk})}
 
-            yield {"data": json.dumps({"type": "ai_response", "text": ai_response.explanation})}
+            # ストリーム完了後にパースしてファイル変更を適用
+            result = chat_service.parse_response(full_response)
 
-            if ai_response.file_changes:
-                results = code_executor.apply_changes(ai_response.file_changes)
+            yield {"data": json.dumps({"type": "ai_done", "explanation": result.explanation})}
 
-                for result in results:
-                    yield {
-                        "data": json.dumps({"type": "file_change", "path": result["path"], "action": result["action"]})
-                    }
+            if result.file_changes:
+                results = code_executor.apply_changes(result.file_changes)
+
+                for r in results:
+                    yield {"data": json.dumps({"type": "file_change", "path": r["path"], "action": r["action"]})}
 
                 commit_message = code_executor.auto_commit(user_instruction)
                 if commit_message:
