@@ -184,6 +184,10 @@
             ws.onopen = () => {
                 statusDot.className = 'status-dot connected';
                 statusText.textContent = '接続済み';
+                // WebSocket接続完了後に自動で音声入力を開始
+                setTimeout(() => {
+                    startRecording();
+                }, 500);
             };
 
             ws.onclose = () => {
