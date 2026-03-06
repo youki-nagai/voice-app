@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -15,45 +16,28 @@ class CodeExecutorService:
 
     def get_project_context(self) -> str:
         """プロジェクトのファイル構造とコード内容を取得"""
-        lines = ["```"]
+        file_list = []
+        file_contents = []
 
         for path in sorted(self._project_root.rglob("*")):
             if any(part in IGNORE_DIRS for part in path.parts):
                 continue
-            if path.is_dir():
-                continue
-            if path.suffix in IGNORE_EXTENSIONS:
+            if path.is_dir() or path.suffix in IGNORE_EXTENSIONS:
                 continue
 
             relative = path.relative_to(self._project_root)
-            lines.append(str(relative))
+            file_list.append(str(relative))
 
-        lines.append("```\n")
-
-        # 主要ファイルの内容を含める
-        for path in sorted(self._project_root.rglob("*")):
-            if any(part in IGNORE_DIRS for part in path.parts):
-                continue
-            if path.is_dir():
-                continue
-            if path.suffix in IGNORE_EXTENSIONS:
-                continue
             if path.stat().st_size > MAX_FILE_SIZE:
                 continue
-
-            relative = path.relative_to(self._project_root)
-
             try:
                 content = path.read_text(encoding="utf-8")
             except (UnicodeDecodeError, PermissionError):
                 continue
 
-            lines.append(f"### {relative}")
-            lines.append(f"```{path.suffix.lstrip('.')}")
-            lines.append(content)
-            lines.append("```\n")
+            file_contents.append(f"### {relative}\n```{path.suffix.lstrip('.')}\n{content}\n```\n")
 
-        return "\n".join(lines)
+        return "```\n" + "\n".join(file_list) + "\n```\n\n" + "\n".join(file_contents)
 
     def apply_changes(self, file_changes: list[FileChange]) -> list[dict]:
         """ファイル変更を適用"""
@@ -78,7 +62,6 @@ class CodeExecutorService:
     def auto_commit(self, instruction: str) -> str | None:
         """変更を自動コミット"""
         try:
-            # ステージング
             subprocess.run(
                 ["git", "add", "-A"],
                 cwd=self._project_root,
@@ -86,7 +69,6 @@ class CodeExecutorService:
                 check=True,
             )
 
-            # 変更があるか確認
             result = subprocess.run(
                 ["git", "diff", "--cached", "--quiet"],
                 cwd=self._project_root,
@@ -94,10 +76,9 @@ class CodeExecutorService:
             )
 
             if result.returncode == 0:
-                return None  # 変更なし
+                return None
 
-            # コミット
-            summary = instruction[:80] if len(instruction) > 80 else instruction
+            summary = instruction[:80]
             commit_message = f"voice: {summary}"
 
             subprocess.run(
@@ -125,10 +106,7 @@ class CodeExecutorService:
         passed = 0
         failed = 0
         for line in output.splitlines():
-            # "1 passed" or "2 failed" patterns
             if "passed" in line or "failed" in line:
-                import re
-
                 m_passed = re.search(r"(\d+) passed", line)
                 m_failed = re.search(r"(\d+) failed", line)
                 if m_passed:
