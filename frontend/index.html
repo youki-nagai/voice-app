@@ -173,7 +173,7 @@
         let silenceTimeout = null;
         let interimElement = null;
         let finalTranscript = '';
-        let loadingElement = null;
+        let processingElements = [];
         const SILENCE_DELAY = 1000;
 
         function connectWebSocket() {
@@ -202,12 +202,12 @@
                 case 'transcript':
                     break;
                 case 'status':
-                    // サーバー側のステータスメッセージは個別に表示
+                    // サーバー側のステータスメッセージを表示
                     addProcessingMessage(msg.text);
                     break;
                 case 'ai_response':
-                    // AI回答を受信 → ローディング終了
-                    hideLoading();
+                    // AI回答を受信 → 全ての処理メッセージを削除
+                    clearAllProcessingMessages();
                     addMessage(msg.text, 'ai');
                     statusDot.className = isRecording ? 'status-dot recording' : 'status-dot connected';
                     statusText.textContent = isRecording ? '録音中' : '接続済み';
@@ -219,13 +219,13 @@
                     addMessage(`committed: ${msg.message}`, 'commit');
                     break;
                 case 'complete':
-                    // 処理完了時にもローディングを確実に非表示
-                    hideLoading();
+                    // 処理完了時に残っている処理メッセージをクリア
+                    clearAllProcessingMessages();
                     statusDot.className = isRecording ? 'status-dot recording' : 'status-dot connected';
                     statusText.textContent = isRecording ? '録音中' : '接続済み';
                     break;
                 case 'error':
-                    hideLoading();
+                    clearAllProcessingMessages();
                     addMessage(msg.text, 'error');
                     statusDot.className = isRecording ? 'status-dot recording' : 'status-dot connected';
                     statusText.textContent = isRecording ? '録音中' : '接続済み';
@@ -253,32 +253,20 @@
             div.appendChild(textSpan);
             chat.appendChild(div);
             chat.scrollTop = chat.scrollHeight;
+            
+            // 処理メッセージを配列で管理
+            processingElements.push(div);
             return div;
         }
 
-        function showLoading() {
-            if (loadingElement) return;
-            
-            loadingElement = document.createElement('div');
-            loadingElement.className = 'message system processing';
-            const spinner = document.createElement('span');
-            spinner.className = 'spinner';
-            const textSpan = document.createElement('span');
-            textSpan.textContent = 'AI回答を待機中...';
-            loadingElement.appendChild(spinner);
-            loadingElement.appendChild(textSpan);
-            chat.appendChild(loadingElement);
-            chat.scrollTop = chat.scrollHeight;
-            
-            statusDot.className = 'status-dot processing';
-            statusText.textContent = '処理中';
-        }
-
-        function hideLoading() {
-            if (loadingElement) {
-                loadingElement.remove();
-                loadingElement = null;
-            }
+        function clearAllProcessingMessages() {
+            // 全ての処理メッセージを削除
+            processingElements.forEach(element => {
+                if (element && element.parentNode) {
+                    element.remove();
+                }
+            });
+            processingElements = [];
         }
 
         function setupSpeechRecognition() {
@@ -374,8 +362,9 @@
                 }));
             }
 
-            // AI回答待ちのローディング表示開始
-            showLoading();
+            // 処理開始時にステータス更新
+            statusDot.className = 'status-dot processing';
+            statusText.textContent = '処理中';
 
             finalTranscript = '';
             silenceTimer.textContent = '送信済み';
