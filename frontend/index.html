@@ -203,8 +203,8 @@
                 case 'transcript':
                     break;
                 case 'status':
-                    // サーバー側のステータスメッセージを表示
-                    addProcessingMessage(msg.text);
+                    // サーバー側のステータスメッセージでローディングメッセージを更新
+                    updateProcessingMessage(msg.text);
                     isWaitingForAI = true;
                     statusDot.className = 'status-dot processing';
                     statusText.textContent = 'AI処理中';
@@ -271,6 +271,20 @@
             // 処理メッセージを配列で管理
             processingElements.push(div);
             return div;
+        }
+
+        function updateProcessingMessage(newText) {
+            // 既存の処理メッセージがあれば更新、なければ新規作成
+            if (processingElements.length > 0) {
+                const lastElement = processingElements[processingElements.length - 1];
+                const textSpan = lastElement.querySelector('span:last-child');
+                if (textSpan) {
+                    textSpan.textContent = newText;
+                    chat.scrollTop = chat.scrollHeight;
+                }
+            } else {
+                addProcessingMessage(newText);
+            }
         }
 
         function clearAllProcessingMessages() {
@@ -370,7 +384,8 @@
             }
 
             if (ws && ws.readyState === WebSocket.OPEN) {
-                // 音声送信後は即座にステータスを更新（サーバーからのメッセージを待つ）
+                // 音声送信直後にローディング表示を開始
+                addProcessingMessage('送信中...');
                 isWaitingForAI = true;
                 statusDot.className = 'status-dot processing';
                 statusText.textContent = 'AI処理中';
