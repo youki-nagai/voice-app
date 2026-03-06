@@ -4,8 +4,8 @@ from fastapi import Depends
 
 from app.chat.service import ChatService
 from app.code_executor.service import CodeExecutorService
-from app.git.service import GitService
 from app.config import get_anthropic_api_key, get_project_root
+from app.git.service import GitService
 
 
 def get_chat_service() -> ChatService:

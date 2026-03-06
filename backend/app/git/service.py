@@ -8,21 +8,11 @@ class GitService:
 
     def check_gh_command(self) -> dict:
         """gh コマンドの実行可能性をチェック"""
-        result = {
-            "gh_installed": False,
-            "gh_authenticated": False,
-            "git_repo": False,
-            "errors": []
-        }
+        result = {"gh_installed": False, "gh_authenticated": False, "git_repo": False, "errors": []}
 
         # gh コマンドがインストールされているかチェック
         try:
-            subprocess.run(
-                ["gh", "--version"],
-                capture_output=True,
-                check=True,
-                timeout=5
-            )
+            subprocess.run(["gh", "--version"], capture_output=True, check=True, timeout=5)
             result["gh_installed"] = True
         except (subprocess.CalledProcessError, FileNotFoundError) as e:
             result["errors"].append(f"gh コマンドが見つかりません: {e}")
@@ -30,12 +20,7 @@ class GitService:
 
         # gh の認証状態をチェック
         try:
-            subprocess.run(
-                ["gh", "auth", "status"],
-                capture_output=True,
-                check=True,
-                timeout=5
-            )
+            subprocess.run(["gh", "auth", "status"], capture_output=True, check=True, timeout=5)
             result["gh_authenticated"] = True
         except subprocess.CalledProcessError as e:
             result["errors"].append(f"gh の認証が必要です: {e}")
@@ -43,11 +28,7 @@ class GitService:
         # Git リポジトリかチェック
         try:
             subprocess.run(
-                ["git", "rev-parse", "--git-dir"],
-                cwd=self._project_root,
-                capture_output=True,
-                check=True,
-                timeout=5
+                ["git", "rev-parse", "--git-dir"], cwd=self._project_root, capture_output=True, check=True, timeout=5
             )
             result["git_repo"] = True
         except subprocess.CalledProcessError as e:
@@ -65,7 +46,7 @@ class GitService:
                 capture_output=True,
                 text=True,
                 check=True,
-                timeout=5
+                timeout=5,
             )
             remote_url = result.stdout.strip()
 
@@ -76,13 +57,10 @@ class GitService:
                 capture_output=True,
                 text=True,
                 check=True,
-                timeout=5
+                timeout=5,
             )
             current_branch = result.stdout.strip()
 
-            return {
-                "remote_url": remote_url,
-                "current_branch": current_branch
-            }
+            return {"remote_url": remote_url, "current_branch": current_branch}
         except subprocess.CalledProcessError:
             return None
