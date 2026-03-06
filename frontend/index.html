@@ -204,6 +204,8 @@
                 case 'status':
                     // サーバー側のステータスメッセージを表示
                     addProcessingMessage(msg.text);
+                    statusDot.className = 'status-dot processing';
+                    statusText.textContent = '処理中';
                     break;
                 case 'ai_response':
                     // AI回答を受信 → 全ての処理メッセージを削除
@@ -361,10 +363,6 @@
                     text: finalTranscript,
                 }));
             }
-
-            // 処理開始時にステータス更新
-            statusDot.className = 'status-dot processing';
-            statusText.textContent = '処理中';
 
             finalTranscript = '';
             silenceTimer.textContent = '送信済み';
