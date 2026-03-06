@@ -14,16 +14,6 @@ router = APIRouter()
 async def voice_websocket(websocket: WebSocket):
     await websocket.accept()
 
-    # テスト用の接続確認メッセージ
-    await websocket.send_text(
-        json.dumps(
-            {
-                "type": "status",
-                "text": "音声入力テスト開始 - マイクボタンを押して話してください",
-            }
-        )
-    )
-
     chat_service = ChatService(api_key=get_anthropic_api_key())
     code_executor = CodeExecutorService(project_root=get_project_root())
 

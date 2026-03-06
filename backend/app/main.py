@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from app.chat.router import router as chat_router
 from app.voice.router import router as voice_router
 
-app = FastAPI(title="voice-app")
+app = FastAPI(title="voice-app（仮）")
 
 app.add_middleware(
     CORSMiddleware,

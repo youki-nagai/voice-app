@@ -63,18 +63,29 @@ class ChatService:
         return self._parse_response(assistant_text)
 
     def _parse_response(self, text: str) -> CodeGenerationResult:
-        # JSON部分を抽出
-        json_text = text
-        if "```json" in text:
-            json_text = text.split("```json")[1].split("```")[0]
-        elif "```" in text:
-            json_text = text.split("```")[1].split("```")[0]
-
+        # まず生テキストをそのままJSONパースを試みる
         try:
-            data = json.loads(json_text.strip())
+            data = json.loads(text.strip())
+            return self._build_result(data)
         except json.JSONDecodeError:
-            return CodeGenerationResult(explanation=text, file_changes=[])
+            pass
 
+        # ```json ... ``` のコードブロックから最初のJSONを抽出
+        import re
+
+        match = re.search(r"```json\s*\n(.*?)\n```", text, re.DOTALL)
+        if match:
+            try:
+                data = json.loads(match.group(1).strip())
+                return self._build_result(data)
+            except json.JSONDecodeError:
+                pass
+
+        return CodeGenerationResult(explanation=text, file_changes=[])
+
+        return self._build_result(data)
+
+    def _build_result(self, data: dict) -> CodeGenerationResult:
         file_changes = [
             FileChange(
                 path=fc["path"],
