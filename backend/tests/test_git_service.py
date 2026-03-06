@@ -79,3 +79,133 @@ class TestGitServiceGetRepoInfo:
         assert result is not None
         assert result["remote_url"] == "https://github.com/user/repo.git"
         assert result["current_branch"] in ["main", "master"]
+
+
+class TestGitServiceCreateBranch:
+    def setup_method(self):
+        self._tmpdir = tempfile.mkdtemp()
+        subprocess.run(["git", "init"], cwd=self._tmpdir, capture_output=True)
+        subprocess.run(["git", "config", "user.email", "test@test.com"], cwd=self._tmpdir, capture_output=True)
+        subprocess.run(["git", "config", "user.name", "test"], cwd=self._tmpdir, capture_output=True)
+        Path(self._tmpdir, "test.txt").write_text("test")
+        subprocess.run(["git", "add", "."], cwd=self._tmpdir, capture_output=True)
+        subprocess.run(["git", "commit", "-m", "initial"], cwd=self._tmpdir, capture_output=True)
+        self._service = GitService(project_root=self._tmpdir)
+
+    def test_given_valid_name_when_create_branch_then_switches_to_new_branch(self):
+        result = self._service.create_branch("feature/test")
+
+        assert result["success"] is True
+        assert result["branch"] == "feature/test"
+
+        # 実際にブランチが切り替わっていることを確認
+        branch_result = subprocess.run(
+            ["git", "branch", "--show-current"], cwd=self._tmpdir, capture_output=True, text=True
+        )
+        assert branch_result.stdout.strip() == "feature/test"
+
+    def test_given_existing_branch_when_create_branch_then_returns_error(self):
+        self._service.create_branch("feature/test")
+        result = self._service.create_branch("feature/test")
+
+        assert result["success"] is False
+        assert "error" in result
+
+
+class TestGitServiceGetStatus:
+    def setup_method(self):
+        self._tmpdir = tempfile.mkdtemp()
+        subprocess.run(["git", "init"], cwd=self._tmpdir, capture_output=True)
+        subprocess.run(["git", "config", "user.email", "test@test.com"], cwd=self._tmpdir, capture_output=True)
+        subprocess.run(["git", "config", "user.name", "test"], cwd=self._tmpdir, capture_output=True)
+        Path(self._tmpdir, "test.txt").write_text("test")
+        subprocess.run(["git", "add", "."], cwd=self._tmpdir, capture_output=True)
+        subprocess.run(["git", "commit", "-m", "initial"], cwd=self._tmpdir, capture_output=True)
+        self._service = GitService(project_root=self._tmpdir)
+
+    def test_given_clean_repo_when_get_status_then_returns_clean(self):
+        result = self._service.get_status()
+
+        assert result["branch"] in ["main", "master"]
+        assert result["changed_files"] == []
+
+    def test_given_modified_file_when_get_status_then_returns_changes(self):
+        Path(self._tmpdir, "test.txt").write_text("modified")
+
+        result = self._service.get_status()
+
+        assert len(result["changed_files"]) > 0
+
+
+class TestGitServicePush:
+    def setup_method(self):
+        self._tmpdir = tempfile.mkdtemp()
+        self._service = GitService(project_root=self._tmpdir)
+
+    @patch("subprocess.run")
+    def test_given_valid_repo_when_push_then_returns_success(self, mock_run):
+        mock_run.return_value = subprocess.CompletedProcess([], 0, stdout="Everything up-to-date", stderr="")
+
+        result = self._service.push()
+
+        assert result["success"] is True
+        mock_run.assert_called_once()
+        call_args = mock_run.call_args[0][0]
+        assert call_args == ["git", "push", "-u", "origin", "HEAD"]
+
+    @patch("subprocess.run")
+    def test_given_push_fails_when_push_then_returns_error(self, mock_run):
+        mock_run.side_effect = subprocess.CalledProcessError(1, "git push", stderr="rejected")
+
+        result = self._service.push()
+
+        assert result["success"] is False
+        assert "error" in result
+
+
+class TestGitServiceCreatePr:
+    def setup_method(self):
+        self._tmpdir = tempfile.mkdtemp()
+        self._service = GitService(project_root=self._tmpdir)
+
+    @patch("subprocess.run")
+    def test_given_valid_params_when_create_pr_then_returns_url(self, mock_run):
+        mock_run.return_value = subprocess.CompletedProcess(
+            [], 0, stdout="https://github.com/user/repo/pull/1\n", stderr=""
+        )
+
+        result = self._service.create_pr("テストPR", "テスト本文")
+
+        assert result["success"] is True
+        assert result["url"] == "https://github.com/user/repo/pull/1"
+        call_args = mock_run.call_args[0][0]
+        assert "gh" in call_args
+        assert "pr" in call_args
+        assert "create" in call_args
+
+    @patch("subprocess.run")
+    def test_given_gh_fails_when_create_pr_then_returns_error(self, mock_run):
+        mock_run.side_effect = subprocess.CalledProcessError(1, "gh pr create", stderr="error")
+
+        result = self._service.create_pr("テスト", "")
+
+        assert result["success"] is False
+        assert "error" in result
+
+
+class TestGitServiceGetLog:
+    def setup_method(self):
+        self._tmpdir = tempfile.mkdtemp()
+        subprocess.run(["git", "init"], cwd=self._tmpdir, capture_output=True)
+        subprocess.run(["git", "config", "user.email", "test@test.com"], cwd=self._tmpdir, capture_output=True)
+        subprocess.run(["git", "config", "user.name", "test"], cwd=self._tmpdir, capture_output=True)
+        Path(self._tmpdir, "test.txt").write_text("test")
+        subprocess.run(["git", "add", "."], cwd=self._tmpdir, capture_output=True)
+        subprocess.run(["git", "commit", "-m", "initial commit"], cwd=self._tmpdir, capture_output=True)
+        self._service = GitService(project_root=self._tmpdir)
+
+    def test_given_commits_exist_when_get_log_then_returns_entries(self):
+        result = self._service.get_log(limit=5)
+
+        assert len(result) >= 1
+        assert "initial commit" in result[0]
