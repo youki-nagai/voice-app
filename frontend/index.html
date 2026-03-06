@@ -35,6 +35,34 @@
             color: #fff;
         }
 
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .git-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #666;
+            cursor: pointer;
+        }
+
+        .git-status:hover { color: #aaa; }
+
+        .git-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #444;
+        }
+
+        .git-dot.ok { background: #22c55e; }
+        .git-dot.warn { background: #f59e0b; }
+        .git-dot.error { background: #ef4444; }
+
         .status-indicator {
             display: flex;
             align-items: center;
@@ -197,9 +225,15 @@
 <body>
     <header>
         <h1>voice-app</h1>
-        <div class="status-indicator">
-            <div class="status-dot" id="status-dot"></div>
-            <span id="status-text">準備中</span>
+        <div class="header-right">
+            <div class="git-status" id="git-status" title="クリックでGit状態を再チェック">
+                <div class="git-dot" id="git-dot"></div>
+                <span id="git-text">Git: 確認中</span>
+            </div>
+            <div class="status-indicator">
+                <div class="status-dot" id="status-dot"></div>
+                <span id="status-text">準備中</span>
+            </div>
         </div>
     </header>
 
@@ -240,6 +274,9 @@
         const statusDot = document.getElementById('status-dot');
         const statusText = document.getElementById('status-text');
         const silenceTimer = document.getElementById('silence-timer');
+        const gitDot = document.getElementById('git-dot');
+        const gitText = document.getElementById('git-text');
+        const gitStatusEl = document.getElementById('git-status');
 
         let recognition = null;
         let isRecording = false;
@@ -254,6 +291,7 @@
         function initializeApp() {
             statusDot.className = 'status-dot connected';
             statusText.textContent = '準備完了';
+            checkGitStatus(false);
             // アプリ初期化後に自動で音声入力を開始
             setTimeout(() => {
                 startRecording();
@@ -367,11 +405,67 @@
             currentAiElement = null;
         }
 
+        const GIT_KEYWORDS = ['git確認', 'git チェック', 'ghコマンド', 'gh コマンド', 'gitステータス', 'git ステータス', 'git状態', 'git 状態'];
+
+        function checkGitStatus(showInChat) {
+            return fetch('/api/git/check')
+                .then(r => r.json())
+                .then(data => {
+                    const gh = data.gh_status;
+                    const repo = data.repo_info;
+
+                    if (gh.gh_installed && gh.gh_authenticated && gh.git_repo) {
+                        gitDot.className = 'git-dot ok';
+                        const branch = repo ? repo.current_branch : '?';
+                        gitText.textContent = `Git: ${branch}`;
+                    } else if (gh.gh_installed) {
+                        gitDot.className = 'git-dot warn';
+                        gitText.textContent = 'Git: 一部エラー';
+                    } else {
+                        gitDot.className = 'git-dot error';
+                        gitText.textContent = 'Git: 未設定';
+                    }
+
+                    if (showInChat) {
+                        const lines = [];
+                        lines.push(`gh installed: ${gh.gh_installed ? 'OK' : 'NG'}`);
+                        lines.push(`gh authenticated: ${gh.gh_authenticated ? 'OK' : 'NG'}`);
+                        lines.push(`git repo: ${gh.git_repo ? 'OK' : 'NG'}`);
+                        if (gh.errors.length > 0) {
+                            lines.push(`errors: ${gh.errors.join(', ')}`);
+                        }
+                        if (repo) {
+                            lines.push(`remote: ${repo.remote_url}`);
+                            lines.push(`branch: ${repo.current_branch}`);
+                        }
+                        addMessage(lines.join('\n'), 'system');
+                    }
+                })
+                .catch(() => {
+                    gitDot.className = 'git-dot error';
+                    gitText.textContent = 'Git: 接続エラー';
+                    if (showInChat) {
+                        addMessage('Git状態の取得に失敗しました', 'error');
+                    }
+                });
+        }
+
+        function isGitCheckCommand(text) {
+            const normalized = text.trim().toLowerCase();
+            return GIT_KEYWORDS.some(kw => normalized.includes(kw));
+        }
+
         function sendMessage(text, skipUserDisplay) {
             if (!text.trim() || isWaitingForAI) return;
 
             if (!skipUserDisplay) {
                 addMessage(text, 'user');
+            }
+
+            // gitチェックコマンドの場合はAPIを直接呼ぶ
+            if (isGitCheckCommand(text)) {
+                checkGitStatus(true);
+                return;
             }
 
             // SSEで送信
@@ -587,6 +681,10 @@
                     textInput.value = '';
                 }
             }
+        });
+
+        gitStatusEl.addEventListener('click', () => {
+            checkGitStatus(true);
         });
 
         // 初期化
