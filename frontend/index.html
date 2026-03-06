@@ -298,6 +298,14 @@
             recognition.continuous = true;
             recognition.interimResults = true;
 
+            recognition.onaudiostart = () => {
+                addMessage('マイク入力開始', 'system');
+            };
+
+            recognition.onspeechstart = () => {
+                addMessage('音声検出', 'system');
+            };
+
             recognition.onresult = (event) => {
                 let interim = '';
                 let finalPart = '';
@@ -338,8 +346,7 @@
             };
 
             recognition.onerror = (event) => {
-                if (event.error === 'no-speech' || event.error === 'aborted' || event.error === 'network') {
-                    // これらは無視（networkはWeb Speech APIの一時的な切断で頻発する）
+                if (event.error === 'no-speech' || event.error === 'aborted') {
                     return;
                 }
                 addMessage(`音声認識エラー: ${event.error}`, 'error');
@@ -410,8 +417,13 @@
             statusDot.className = 'status-dot recording';
             statusText.textContent = '録音中';
             silenceTimer.textContent = '';
+            addMessage('録音開始...', 'system');
 
-            recognition.start();
+            try {
+                recognition.start();
+            } catch (e) {
+                addMessage(`録音開始エラー: ${e.message}`, 'error');
+            }
         }
 
         function stopRecording() {
