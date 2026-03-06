@@ -57,7 +57,7 @@ class ChatService:
         self._sync_global_history()
 
         response = self._client.messages.create(
-            model="claude-sonnet-4-20250514",
+            model="claude-3-5-haiku-20241022",
             max_tokens=8192,
             system=SYSTEM_PROMPT,
             messages=self._history,
