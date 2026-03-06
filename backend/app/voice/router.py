@@ -42,13 +42,22 @@ async def voice_websocket(websocket: WebSocket):
                     json.dumps(
                         {
                             "type": "status",
-                            "text": "AIがコードを生成中...",
+                            "text": "考え中...",
                         }
                     )
                 )
 
                 # プロジェクトのファイル構造を取得
                 project_context = code_executor.get_project_context()
+
+                await websocket.send_text(
+                    json.dumps(
+                        {
+                            "type": "status",
+                            "text": "AIがコードを生成中...",
+                        }
+                    )
+                )
 
                 # Claude APIでコード生成
                 ai_response = await chat_service.generate_code(
