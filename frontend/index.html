@@ -173,6 +173,7 @@
         let silenceTimeout = null;
         let interimElement = null;
         let finalTranscript = '';
+        let loadingElement = null;
         const SILENCE_DELAY = 1000;
 
         function connectWebSocket() {
@@ -201,12 +202,15 @@
                 case 'transcript':
                     break;
                 case 'status':
+                    // サーバー側のステータスメッセージは個別に表示
                     addProcessingMessage(msg.text);
-                    statusDot.className = 'status-dot processing';
-                    statusText.textContent = '処理中';
                     break;
                 case 'ai_response':
+                    // AI回答を受信 → ローディング終了
+                    hideLoading();
                     addMessage(msg.text, 'ai');
+                    statusDot.className = isRecording ? 'status-dot recording' : 'status-dot connected';
+                    statusText.textContent = isRecording ? '録音中' : '接続済み';
                     break;
                 case 'file_change':
                     addMessage(`${msg.action}: ${msg.path}`, 'file-change');
@@ -219,6 +223,7 @@
                     statusText.textContent = isRecording ? '録音中' : '接続済み';
                     break;
                 case 'error':
+                    hideLoading();
                     addMessage(msg.text, 'error');
                     statusDot.className = isRecording ? 'status-dot recording' : 'status-dot connected';
                     statusText.textContent = isRecording ? '録音中' : '接続済み';
@@ -247,6 +252,31 @@
             chat.appendChild(div);
             chat.scrollTop = chat.scrollHeight;
             return div;
+        }
+
+        function showLoading() {
+            if (loadingElement) return;
+            
+            loadingElement = document.createElement('div');
+            loadingElement.className = 'message system processing';
+            const spinner = document.createElement('span');
+            spinner.className = 'spinner';
+            const textSpan = document.createElement('span');
+            textSpan.textContent = 'AI回答を待機中...';
+            loadingElement.appendChild(spinner);
+            loadingElement.appendChild(textSpan);
+            chat.appendChild(loadingElement);
+            chat.scrollTop = chat.scrollHeight;
+            
+            statusDot.className = 'status-dot processing';
+            statusText.textContent = '処理中';
+        }
+
+        function hideLoading() {
+            if (loadingElement) {
+                loadingElement.remove();
+                loadingElement = null;
+            }
         }
 
         function setupSpeechRecognition() {
@@ -341,6 +371,9 @@
                     text: finalTranscript,
                 }));
             }
+
+            // AI回答待ちのローディング表示開始
+            showLoading();
 
             finalTranscript = '';
             silenceTimer.textContent = '送信済み';
