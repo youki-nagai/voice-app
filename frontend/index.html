@@ -248,6 +248,7 @@
         let finalTranscript = '';
         let processingElements = [];
         let isWaitingForAI = false;
+        let currentAiElement = null;
         const SILENCE_DELAY = 1000;
 
         function initializeApp() {
@@ -267,11 +268,12 @@
                     statusDot.className = 'status-dot processing';
                     statusText.textContent = 'AI処理中';
                     break;
-                case 'ai_response':
-                    isWaitingForAI = false;
+                case 'ai_chunk':
                     clearAllProcessingMessages();
-                    addMessage(msg.text, 'ai');
-                    updateStatusAfterAI();
+                    appendToAiMessage(msg.text);
+                    break;
+                case 'ai_done':
+                    finalizeAiMessage();
                     break;
                 case 'file_change':
                     addMessage(`${msg.action}: ${msg.path}`, 'file-change');
@@ -350,11 +352,27 @@
             processingElements = [];
         }
 
-        function sendMessage(text) {
+        function appendToAiMessage(chunk) {
+            if (!currentAiElement) {
+                currentAiElement = document.createElement('div');
+                currentAiElement.className = 'message ai';
+                currentAiElement.textContent = '';
+                chat.appendChild(currentAiElement);
+            }
+            currentAiElement.textContent += chunk;
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function finalizeAiMessage() {
+            currentAiElement = null;
+        }
+
+        function sendMessage(text, skipUserDisplay) {
             if (!text.trim() || isWaitingForAI) return;
 
-            // ユーザーメッセージを表示
-            addMessage(text, 'user');
+            if (!skipUserDisplay) {
+                addMessage(text, 'user');
+            }
 
             // SSEで送信
             addProcessingMessage('送信中...');
@@ -495,7 +513,7 @@
                 interimElement = null;
             }
 
-            sendMessage(finalTranscript);
+            sendMessage(finalTranscript, true);
             finalTranscript = '';
             silenceTimer.textContent = '送信済み';
         }

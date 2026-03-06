@@ -1,5 +1,6 @@
 import json
 import re
+from collections.abc import AsyncGenerator
 from typing import ClassVar
 
 import anthropic
@@ -41,11 +42,12 @@ class ChatService:
         self._client = anthropic.Anthropic(api_key=api_key)
         self._history: list[dict] = self._global_history.copy()
 
-    async def generate_code(
+    async def stream_generate_code(
         self,
         instruction: str,
         project_context: str,
-    ) -> CodeGenerationResult:
+    ) -> AsyncGenerator[str]:
+        """ストリーミングでコード生成し、テキストチャンクをyield。最後にNoneをyield。"""
         user_message = f"""## 現在のプロジェクト構造
 {project_context}
 
@@ -55,23 +57,21 @@ class ChatService:
         self._history.append({"role": "user", "content": user_message})
         self._sync_global_history()
 
-        response = self._client.messages.create(
+        full_text = ""
+        with self._client.messages.stream(
             model="claude-sonnet-4-20250514",
             max_tokens=8192,
             system=SYSTEM_PROMPT,
             messages=self._history,
-        )
+        ) as stream:
+            for text in stream.text_stream:
+                full_text += text
+                yield text
 
-        assistant_text = response.content[0].text
-        self._history.append({"role": "assistant", "content": assistant_text})
+        self._history.append({"role": "assistant", "content": full_text})
         self._sync_global_history()
 
-        return self._parse_response(assistant_text)
-
-    def _sync_global_history(self):
-        ChatService._global_history = self._history.copy()
-
-    def _parse_response(self, text: str) -> CodeGenerationResult:
+    def parse_response(self, text: str) -> CodeGenerationResult:
         # まず生テキストをそのままJSONパース
         try:
             data = json.loads(text.strip())
@@ -89,6 +89,12 @@ class ChatService:
                 pass
 
         return CodeGenerationResult(explanation=text, file_changes=[])
+
+    def get_history(self) -> list[dict]:
+        return self._history.copy()
+
+    def _sync_global_history(self):
+        ChatService._global_history = self._history.copy()
 
     def _build_result(self, data: dict) -> CodeGenerationResult:
         file_changes = [
