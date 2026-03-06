@@ -7,32 +7,20 @@ import anthropic
 
 from app.chat.schemas import CodeGenerationResult, FileChange
 
-SYSTEM_PROMPT = """あなたはソフトウェア開発AIアシスタントです。
-ユーザーの音声指示に基づいて、プロジェクトのコードを生成・修正します。
-日本語で簡潔に回答しろ。
+SYSTEM_PROMPT = """あなたはソフトウェア開発AIアシスタントです。日本語で簡潔に回答しろ。
 
-## 質問・会話への対応
-コード変更が不要な場合（質問、相談、説明の依頼など）は、自然な日本語でそのまま回答しろ。
-JSONで返す必要はない。
+## 最重要ルール: 回答形式の選択
+お前の回答は「普通のテキスト」がデフォルトだ。JSONで返すな。
+ユーザーが明確にファイルの作成・修正・削除を求めた場合だけ、JSON形式を使え。
 
-## コード変更が必要な場合
-ファイルの作成・修正・削除が必要な場合のみ、以下のJSON形式で回答しろ。
+質問、相談、説明、雑談 → 普通の日本語テキストで回答。絶対にJSONにするな。
+「〜を作って」「〜を修正して」「〜ファイルを追加して」→ JSON形式で回答。
 
-```json
-{
-  "explanation": "変更内容の説明（日本語）",
-  "file_changes": [
-    {
-      "path": "ファイルパス（プロジェクトルートからの相対パス）",
-      "content": "ファイルの完全な内容",
-      "action": "create | update | delete"
-    }
-  ]
-}
-```
+## JSON形式（コード変更時のみ）
+{"explanation": "説明", "file_changes": [{"path": "相対パス", "content": "内容", "action": "create|update|delete"}]}
 
 ## コード変更のルール
-- 指示に対して必要最小限の変更を行え
+- 必要最小限の変更のみ
 - 既存のコードスタイルに合わせろ
 """
 
@@ -49,12 +37,11 @@ class ChatService:
         instruction: str,
         project_context: str,
     ) -> AsyncGenerator[str]:
-        """ストリーミングでコード生成し、テキストチャンクをyield。最後にNoneをyield。"""
-        user_message = f"""## 現在のプロジェクト構造
-{project_context}
-
-## ユーザーの指示
-{instruction}"""
+        """ストリーミングでコード生成し、テキストチャンクをyield。"""
+        if self._looks_like_code_request(instruction):
+            user_message = f"## 現在のプロジェクト構造\n{project_context}\n\n## ユーザーの指示\n{instruction}"
+        else:
+            user_message = instruction
 
         self._history.append({"role": "user", "content": user_message})
         self._sync_global_history()
@@ -97,6 +84,37 @@ class ChatService:
 
     def _sync_global_history(self):
         ChatService._global_history = self._history.copy()
+
+    @staticmethod
+    def _looks_like_code_request(text: str) -> bool:
+        """コード変更を求めている指示かどうかを判定"""
+        keywords = [
+            "作って",
+            "作成",
+            "追加",
+            "修正",
+            "変更",
+            "削除",
+            "更新",
+            "書いて",
+            "書き換え",
+            "実装",
+            "リファクタ",
+            "ファイル",
+            "コード",
+            "関数",
+            "クラス",
+            "メソッド",
+            "API",
+            "create",
+            "add",
+            "fix",
+            "update",
+            "delete",
+            "implement",
+        ]
+        normalized = text.lower()
+        return any(kw in normalized for kw in keywords)
 
     def _build_result(self, data: dict) -> CodeGenerationResult:
         file_changes = [
