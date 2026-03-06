@@ -206,7 +206,7 @@
             </svg>
         </button>
         <span id="silence-info" style="font-size: 11px; color: #555; min-width: 80px; text-align: center;">
-            2秒の沈黙で送信
+            1秒の沈黙で送信
         </span>
     </div>
 
@@ -223,7 +223,7 @@
         let silenceTimeout = null;
         let interimElement = null;
         let finalTranscript = '';
-        const SILENCE_DELAY = 2000; // 2秒の沈黙で送信
+        const SILENCE_DELAY = 1000; // 1秒の沈黙で送信
 
         function connectWebSocket() {
             const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -399,9 +399,6 @@
 
             finalTranscript = '';
             silenceTimer.textContent = '送信済み';
-
-            // 録音を停止
-            stopRecording();
         }
 
         function startRecording() {
