@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>voice-app（仮）</title>
+    <title>voice-app</title>
     <style>
         * {
             margin: 0;
@@ -50,19 +50,9 @@
             background: #444;
         }
 
-        .status-dot.connected {
-            background: #22c55e;
-        }
-
-        .status-dot.recording {
-            background: #ef4444;
-            animation: pulse 1s infinite;
-        }
-
-        .status-dot.processing {
-            background: #f59e0b;
-            animation: pulse 0.5s infinite;
-        }
+        .status-dot.connected { background: #22c55e; }
+        .status-dot.recording { background: #ef4444; animation: pulse 1s infinite; }
+        .status-dot.processing { background: #f59e0b; animation: pulse 0.5s infinite; }
 
         @keyframes pulse {
             0%, 100% { opacity: 1; }
@@ -104,64 +94,14 @@
             word-break: break-word;
         }
 
-        .message.user {
-            background: #1a3a5c;
-            align-self: flex-end;
-            color: #c8e0f8;
-        }
-
-        .message.interim {
-            background: #1a2a3c;
-            align-self: flex-end;
-            color: #7aa8d4;
-            opacity: 0.7;
-            font-style: italic;
-        }
-
-        .message.ai {
-            background: #1a1a2e;
-            align-self: flex-start;
-            color: #b8b8e8;
-        }
-
-        .message.system {
-            background: #1a2a1a;
-            align-self: center;
-            color: #88c888;
-            font-size: 12px;
-            text-align: center;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .message.system.processing {
-            background: #2a1e1a;
-            color: #f59e0b;
-        }
-
-        .message.error {
-            background: #2e1a1a;
-            align-self: center;
-            color: #e88888;
-            font-size: 12px;
-        }
-
-        .message.file-change {
-            background: #1a2e2a;
-            align-self: flex-start;
-            color: #88c8b8;
-            font-size: 12px;
-            font-family: monospace;
-        }
-
-        .message.commit {
-            background: #2a2e1a;
-            align-self: center;
-            color: #c8c888;
-            font-size: 12px;
-            font-family: monospace;
-        }
+        .message.user { background: #1a3a5c; align-self: flex-end; color: #c8e0f8; }
+        .message.interim { background: #1a2a3c; align-self: flex-end; color: #7aa8d4; opacity: 0.7; font-style: italic; }
+        .message.ai { background: #1a1a2e; align-self: flex-start; color: #b8b8e8; }
+        .message.system { background: #1a2a1a; align-self: center; color: #88c888; font-size: 12px; text-align: center; display: flex; align-items: center; justify-content: center; }
+        .message.system.processing { background: #2a1e1a; color: #f59e0b; }
+        .message.error { background: #2e1a1a; align-self: center; color: #e88888; font-size: 12px; }
+        .message.file-change { background: #1a2e2a; align-self: flex-start; color: #88c8b8; font-size: 12px; font-family: monospace; }
+        .message.commit { background: #2a2e1a; align-self: center; color: #c8c888; font-size: 12px; font-family: monospace; }
 
         #controls {
             padding: 16px 20px;
@@ -188,34 +128,15 @@
             transition: all 0.2s;
         }
 
-        #mic-button:hover {
-            border-color: #555;
-            color: #aaa;
-        }
+        #mic-button:hover { border-color: #555; color: #aaa; }
+        #mic-button.active { border-color: #ef4444; background: #2a1010; color: #ef4444; box-shadow: 0 0 20px rgba(239, 68, 68, 0.2); }
 
-        #mic-button.active {
-            border-color: #ef4444;
-            background: #2a1010;
-            color: #ef4444;
-            box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
-        }
-
-        #mic-button.disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        #silence-timer {
-            font-size: 12px;
-            color: #666;
-            min-width: 80px;
-            text-align: center;
-        }
+        #silence-timer { font-size: 12px; color: #666; min-width: 80px; text-align: center; }
     </style>
 </head>
 <body>
     <header>
-        <h1>voice-app（仮）</h1>
+        <h1>voice-app</h1>
         <div class="status-indicator">
             <div class="status-dot" id="status-dot"></div>
             <span id="status-text">未接続</span>
@@ -249,11 +170,10 @@
         let ws = null;
         let recognition = null;
         let isRecording = false;
-        let isProcessing = false;
         let silenceTimeout = null;
         let interimElement = null;
         let finalTranscript = '';
-        const SILENCE_DELAY = 1000; // 1秒の沈黙で送信
+        const SILENCE_DELAY = 1000;
 
         function connectWebSocket() {
             const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -279,11 +199,8 @@
         function handleServerMessage(msg) {
             switch (msg.type) {
                 case 'transcript':
-                    // サーバーからのエコーバックは無視（ローカルで表示済み）
                     break;
                 case 'status':
-                    isProcessing = true;
-                    updateMicButtonState();
                     addProcessingMessage(msg.text);
                     statusDot.className = 'status-dot processing';
                     statusText.textContent = '処理中';
@@ -298,18 +215,13 @@
                     addMessage(`committed: ${msg.message}`, 'commit');
                     break;
                 case 'complete':
-                    isProcessing = false;
-                    updateMicButtonState();
-                    statusDot.className = 'status-dot connected';
-                    statusText.textContent = '接続済み';
-                    addMessage('✅ 処理完了', 'system');
+                    statusDot.className = isRecording ? 'status-dot recording' : 'status-dot connected';
+                    statusText.textContent = isRecording ? '録音中' : '接続済み';
                     break;
                 case 'error':
-                    isProcessing = false;
-                    updateMicButtonState();
                     addMessage(msg.text, 'error');
-                    statusDot.className = 'status-dot connected';
-                    statusText.textContent = '接続済み';
+                    statusDot.className = isRecording ? 'status-dot recording' : 'status-dot connected';
+                    statusText.textContent = isRecording ? '録音中' : '接続済み';
                     break;
             }
         }
@@ -326,29 +238,15 @@
         function addProcessingMessage(text) {
             const div = document.createElement('div');
             div.className = 'message system processing';
-            
             const spinner = document.createElement('span');
             spinner.className = 'spinner';
-            
             const textSpan = document.createElement('span');
             textSpan.textContent = text;
-            
             div.appendChild(spinner);
             div.appendChild(textSpan);
-            
             chat.appendChild(div);
             chat.scrollTop = chat.scrollHeight;
             return div;
-        }
-
-        function updateMicButtonState() {
-            if (isProcessing) {
-                micButton.classList.add('disabled');
-                micButton.title = 'AI処理中...';
-            } else {
-                micButton.classList.remove('disabled');
-                micButton.title = '音声入力';
-            }
         }
 
         function setupSpeechRecognition() {
@@ -362,14 +260,6 @@
             recognition.lang = 'ja-JP';
             recognition.continuous = true;
             recognition.interimResults = true;
-
-            recognition.onaudiostart = () => {
-                addMessage('マイク入力開始', 'system');
-            };
-
-            recognition.onspeechstart = () => {
-                addMessage('音声検出', 'system');
-            };
 
             recognition.onresult = (event) => {
                 let interim = '';
@@ -388,30 +278,22 @@
                     finalTranscript += finalPart;
                 }
 
-                // リアルタイム表示を更新
                 updateInterimDisplay(finalTranscript + interim);
-
-                // 沈黙タイマーをリセット
                 resetSilenceTimer();
             };
 
             recognition.onend = () => {
-                if (isRecording && !isProcessing) {
-                    // エラー後の再開はディレイを入れて高速リトライを防止
+                if (isRecording) {
                     setTimeout(() => {
-                        if (isRecording && !isProcessing) {
-                            try {
-                                recognition.start();
-                            } catch (e) {
-                                // already started等のエラーを無視
-                            }
+                        if (isRecording) {
+                            try { recognition.start(); } catch (e) {}
                         }
                     }, 300);
                 }
             };
 
             recognition.onerror = (event) => {
-                if (event.error === 'no-speech' || event.error === 'aborted') {
+                if (event.error === 'no-speech' || event.error === 'aborted' || event.error === 'network') {
                     return;
                 }
                 addMessage(`音声認識エラー: ${event.error}`, 'error');
@@ -447,14 +329,12 @@
                 return;
             }
 
-            // interim表示を確定メッセージに変換
             if (interimElement) {
                 interimElement.className = 'message user';
                 interimElement.textContent = finalTranscript;
                 interimElement = null;
             }
 
-            // WebSocketで送信
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({
                     type: 'voice_complete',
@@ -464,14 +344,10 @@
 
             finalTranscript = '';
             silenceTimer.textContent = '送信済み';
+            // マイクは切らない（常時ON）
         }
 
         function startRecording() {
-            if (isProcessing) {
-                addMessage('AI処理中のため録音できません', 'error');
-                return;
-            }
-
             if (!recognition) {
                 setupSpeechRecognition();
             }
@@ -484,13 +360,8 @@
             statusDot.className = 'status-dot recording';
             statusText.textContent = '録音中';
             silenceTimer.textContent = '';
-            addMessage('録音開始...', 'system');
 
-            try {
-                recognition.start();
-            } catch (e) {
-                addMessage(`録音開始エラー: ${e.message}`, 'error');
-            }
+            try { recognition.start(); } catch (e) {}
         }
 
         function stopRecording() {
@@ -511,17 +382,11 @@
         }
 
         micButton.addEventListener('click', () => {
-            if (isProcessing) {
-                return; // 処理中はクリックを無効化
-            }
-
             if (isRecording) {
-                // 手動停止 → 即座に送信
                 if (finalTranscript.trim()) {
                     sendVoiceComplete();
-                } else {
-                    stopRecording();
                 }
+                stopRecording();
             } else {
                 startRecording();
             }
