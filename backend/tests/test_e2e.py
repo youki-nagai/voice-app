@@ -101,6 +101,30 @@ class TestE2eSseStream:
         assert types[0] == "status", f"最初のイベントがstatusではない: {types[0]}"
         assert types[-1] == "complete", f"最後のイベントがcompleteではない: {types[-1]}"
 
+    def test_code_change_request_returns_file_change_events(self):
+        events = self._collect_sse_events(
+            {"text": "backend/tests/tmp_e2e_test.txt を作成して。内容は hello e2e"},
+            timeout=60,
+        )
+        types = [e["type"] for e in events]
+
+        assert "ai_chunk" in types, f"ai_chunkがない: {types}"
+        assert "ai_done" in types, f"ai_doneがない: {types}"
+
+        has_file_change = "file_change" in types
+        if has_file_change:
+            fc = next(e for e in events if e["type"] == "file_change")
+            assert "tmp_e2e_test.txt" in fc["path"]
+
+            import os
+
+            created_path = os.path.join(os.path.dirname(__file__), "..", fc["path"])
+            if os.path.exists(created_path):
+                os.remove(created_path)
+        else:
+            full_text = "".join(e["text"] for e in events if e["type"] == "ai_chunk")
+            pytest.fail(f"file_changeイベントが返されなかった。AI応答: {full_text[:500]}")
+
     def _collect_sse_events(self, body, timeout=30):
         events = []
         with httpx.stream(

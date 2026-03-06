@@ -73,6 +73,18 @@ class ChatService:
             except json.JSONDecodeError:
                 pass
 
+        match = re.search(
+            r'\{"explanation".*"file_changes"\s*:\s*\[.*\]\s*\}',
+            text,
+            re.DOTALL,
+        )
+        if match:
+            try:
+                data = json.loads(match.group(0))
+                return self._build_result(data)
+            except json.JSONDecodeError:
+                pass
+
         return CodeGenerationResult(explanation=text, file_changes=[])
 
     def get_history(self) -> list[dict]:
