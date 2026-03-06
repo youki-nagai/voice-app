@@ -112,3 +112,48 @@ class CodeExecutorService:
 
         except subprocess.CalledProcessError:
             return None
+
+    def run_tests(self) -> dict:
+        """pytest を実行してテスト結果を返す"""
+        result = subprocess.run(
+            ["python", "-m", "pytest", "--tb=short", "-q"],
+            cwd=self._project_root,
+            capture_output=True,
+            text=True,
+        )
+        output = result.stdout + result.stderr
+        passed = 0
+        failed = 0
+        for line in output.splitlines():
+            # "1 passed" or "2 failed" patterns
+            if "passed" in line or "failed" in line:
+                import re
+
+                m_passed = re.search(r"(\d+) passed", line)
+                m_failed = re.search(r"(\d+) failed", line)
+                if m_passed:
+                    passed = int(m_passed.group(1))
+                if m_failed:
+                    failed = int(m_failed.group(1))
+
+        success = result.returncode == 0 or (passed == 0 and failed == 0 and "no tests ran" in output.lower())
+        return {
+            "success": success,
+            "passed": passed,
+            "failed": failed,
+            "output": output,
+        }
+
+    def run_lint(self) -> dict:
+        """ruff check を実行してlint結果を返す"""
+        result = subprocess.run(
+            ["python", "-m", "ruff", "check", "."],
+            cwd=self._project_root,
+            capture_output=True,
+            text=True,
+        )
+        output = result.stdout + result.stderr
+        return {
+            "success": result.returncode == 0,
+            "output": output,
+        }

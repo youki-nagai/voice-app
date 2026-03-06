@@ -130,6 +130,9 @@
         .message.error { background: #2e1a1a; align-self: center; color: #e88888; font-size: 12px; }
         .message.file-change { background: #1a2e2a; align-self: flex-start; color: #88c8b8; font-size: 12px; font-family: monospace; }
         .message.commit { background: #2a2e1a; align-self: center; color: #c8c888; font-size: 12px; font-family: monospace; }
+        .message.test-pass { background: #1a2e1a; align-self: center; color: #88c888; font-size: 12px; font-family: monospace; }
+        .message.test-fail { background: #2e1a1a; align-self: center; color: #e88888; font-size: 12px; font-family: monospace; }
+        .message.verify-failed { background: #2e1a1a; align-self: center; color: #e8a888; font-size: 12px; font-weight: bold; }
 
         #controls {
             padding: 16px 20px;
@@ -315,6 +318,23 @@
                     break;
                 case 'file_change':
                     addMessage(`${msg.action}: ${msg.path}`, 'file-change');
+                    break;
+                case 'test_result':
+                    if (msg.success) {
+                        addMessage(`テスト OK (passed: ${msg.passed}, failed: ${msg.failed})`, 'test-pass');
+                    } else {
+                        addMessage(`テスト NG (passed: ${msg.passed}, failed: ${msg.failed})\n${msg.output || ''}`, 'test-fail');
+                    }
+                    break;
+                case 'lint_result':
+                    if (msg.success) {
+                        addMessage('lint OK', 'test-pass');
+                    } else {
+                        addMessage(`lint NG\n${msg.output || ''}`, 'test-fail');
+                    }
+                    break;
+                case 'verify_failed':
+                    addMessage(msg.text, 'verify-failed');
                     break;
                 case 'commit':
                     addMessage(`committed: ${msg.message}`, 'commit');

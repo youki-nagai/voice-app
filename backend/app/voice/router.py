@@ -53,9 +53,29 @@ async def stream(request: Request):
                 for r in results:
                     yield {"data": json.dumps({"type": "file_change", "path": r["path"], "action": r["action"]})}
 
-                commit_message = code_executor.auto_commit(user_instruction)
-                if commit_message:
-                    yield {"data": json.dumps({"type": "commit", "message": commit_message})}
+                # テスト実行
+                yield {"data": json.dumps({"type": "status", "text": "テスト実行中..."})}
+                test_result = code_executor.run_tests()
+                yield {"data": json.dumps({"type": "test_result", **test_result})}
+
+                # lint実行
+                yield {"data": json.dumps({"type": "status", "text": "lint実行中..."})}
+                lint_result = code_executor.run_lint()
+                yield {"data": json.dumps({"type": "lint_result", **lint_result})}
+
+                # テスト・lint両方通過した場合のみコミット
+                if test_result["success"] and lint_result["success"]:
+                    commit_message = code_executor.auto_commit(user_instruction)
+                    if commit_message:
+                        yield {"data": json.dumps({"type": "commit", "message": commit_message})}
+                else:
+                    reasons = []
+                    if not test_result["success"]:
+                        reasons.append(f"テスト失敗 (passed:{test_result['passed']}, failed:{test_result['failed']})")
+                    if not lint_result["success"]:
+                        reasons.append("lint エラー")
+                    msg = "コミットをスキップ: " + ", ".join(reasons)
+                    yield {"data": json.dumps({"type": "verify_failed", "text": msg})}
 
             yield {"data": json.dumps({"type": "complete"})}
 
