@@ -69,6 +69,22 @@
             50% { opacity: 0.4; }
         }
 
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #444;
+            border-top: 2px solid #f59e0b;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+
         #chat {
             flex: 1;
             overflow-y: auto;
@@ -114,6 +130,14 @@
             color: #88c888;
             font-size: 12px;
             text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .message.system.processing {
+            background: #2a1e1a;
+            color: #f59e0b;
         }
 
         .message.error {
@@ -176,6 +200,11 @@
             box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
         }
 
+        #mic-button.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         #silence-timer {
             font-size: 12px;
             color: #666;
@@ -220,6 +249,7 @@
         let ws = null;
         let recognition = null;
         let isRecording = false;
+        let isProcessing = false;
         let silenceTimeout = null;
         let interimElement = null;
         let finalTranscript = '';
@@ -252,7 +282,9 @@
                     // サーバーからのエコーバックは無視（ローカルで表示済み）
                     break;
                 case 'status':
-                    addMessage(msg.text, 'system');
+                    isProcessing = true;
+                    updateMicButtonState();
+                    addProcessingMessage(msg.text);
                     statusDot.className = 'status-dot processing';
                     statusText.textContent = '処理中';
                     break;
@@ -266,10 +298,15 @@
                     addMessage(`committed: ${msg.message}`, 'commit');
                     break;
                 case 'complete':
+                    isProcessing = false;
+                    updateMicButtonState();
                     statusDot.className = 'status-dot connected';
                     statusText.textContent = '接続済み';
+                    addMessage('✅ 処理完了', 'system');
                     break;
                 case 'error':
+                    isProcessing = false;
+                    updateMicButtonState();
                     addMessage(msg.text, 'error');
                     statusDot.className = 'status-dot connected';
                     statusText.textContent = '接続済み';
@@ -284,6 +321,34 @@
             chat.appendChild(div);
             chat.scrollTop = chat.scrollHeight;
             return div;
+        }
+
+        function addProcessingMessage(text) {
+            const div = document.createElement('div');
+            div.className = 'message system processing';
+            
+            const spinner = document.createElement('span');
+            spinner.className = 'spinner';
+            
+            const textSpan = document.createElement('span');
+            textSpan.textContent = text;
+            
+            div.appendChild(spinner);
+            div.appendChild(textSpan);
+            
+            chat.appendChild(div);
+            chat.scrollTop = chat.scrollHeight;
+            return div;
+        }
+
+        function updateMicButtonState() {
+            if (isProcessing) {
+                micButton.classList.add('disabled');
+                micButton.title = 'AI処理中...';
+            } else {
+                micButton.classList.remove('disabled');
+                micButton.title = '音声入力';
+            }
         }
 
         function setupSpeechRecognition() {
@@ -331,10 +396,10 @@
             };
 
             recognition.onend = () => {
-                if (isRecording) {
+                if (isRecording && !isProcessing) {
                     // エラー後の再開はディレイを入れて高速リトライを防止
                     setTimeout(() => {
-                        if (isRecording) {
+                        if (isRecording && !isProcessing) {
                             try {
                                 recognition.start();
                             } catch (e) {
@@ -402,6 +467,11 @@
         }
 
         function startRecording() {
+            if (isProcessing) {
+                addMessage('AI処理中のため録音できません', 'error');
+                return;
+            }
+
             if (!recognition) {
                 setupSpeechRecognition();
             }
@@ -441,6 +511,10 @@
         }
 
         micButton.addEventListener('click', () => {
+            if (isProcessing) {
+                return; // 処理中はクリックを無効化
+            }
+
             if (isRecording) {
                 // 手動停止 → 即座に送信
                 if (finalTranscript.trim()) {
