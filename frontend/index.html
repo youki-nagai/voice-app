@@ -219,6 +219,8 @@
                     addMessage(`committed: ${msg.message}`, 'commit');
                     break;
                 case 'complete':
+                    // 処理完了時にもローディングを確実に非表示
+                    hideLoading();
                     statusDot.className = isRecording ? 'status-dot recording' : 'status-dot connected';
                     statusText.textContent = isRecording ? '録音中' : '接続済み';
                     break;
