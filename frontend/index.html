@@ -324,15 +324,25 @@
 
             recognition.onend = () => {
                 if (isRecording) {
-                    // 途中で止まった場合は再開
-                    recognition.start();
+                    // エラー後の再開はディレイを入れて高速リトライを防止
+                    setTimeout(() => {
+                        if (isRecording) {
+                            try {
+                                recognition.start();
+                            } catch (e) {
+                                // already started等のエラーを無視
+                            }
+                        }
+                    }, 300);
                 }
             };
 
             recognition.onerror = (event) => {
-                if (event.error !== 'no-speech' && event.error !== 'aborted') {
-                    addMessage(`音声認識エラー: ${event.error}`, 'error');
+                if (event.error === 'no-speech' || event.error === 'aborted' || event.error === 'network') {
+                    // これらは無視（networkはWeb Speech APIの一時的な切断で頻発する）
+                    return;
                 }
+                addMessage(`音声認識エラー: ${event.error}`, 'error');
             };
         }
 
