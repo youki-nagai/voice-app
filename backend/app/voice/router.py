@@ -33,7 +33,6 @@ async def stream(request: Request):
 
             project_context = code_executor.get_project_context()
 
-            # ストリーミングでAI応答をリアルタイム配信
             full_response = ""
             async for chunk in chat_service.stream_generate_code(
                 instruction=user_instruction,
@@ -42,28 +41,23 @@ async def stream(request: Request):
                 full_response += chunk
                 yield {"data": json.dumps({"type": "ai_chunk", "text": chunk})}
 
-            # ストリーム完了後にパースしてファイル変更を適用
             result = chat_service.parse_response(full_response)
 
             yield {"data": json.dumps({"type": "ai_done", "explanation": result.explanation})}
 
             if result.file_changes:
-                results = code_executor.apply_changes(result.file_changes)
+                changes = code_executor.apply_changes(result.file_changes)
+                for c in changes:
+                    yield {"data": json.dumps({"type": "file_change", "path": c["path"], "action": c["action"]})}
 
-                for r in results:
-                    yield {"data": json.dumps({"type": "file_change", "path": r["path"], "action": r["action"]})}
-
-                # テスト実行
                 yield {"data": json.dumps({"type": "status", "text": "テスト実行中..."})}
                 test_result = code_executor.run_tests()
                 yield {"data": json.dumps({"type": "test_result", **test_result})}
 
-                # lint実行
                 yield {"data": json.dumps({"type": "status", "text": "lint実行中..."})}
                 lint_result = code_executor.run_lint()
                 yield {"data": json.dumps({"type": "lint_result", **lint_result})}
 
-                # テスト・lint両方通過した場合のみコミット
                 if test_result["success"] and lint_result["success"]:
                     commit_message = code_executor.auto_commit(user_instruction)
                     if commit_message:

@@ -6,5 +6,5 @@ router = APIRouter()
 
 
 @router.get("/history")
-def index(chat_service: ChatServiceDep):
+def get_history(chat_service: ChatServiceDep):
     return {"history": chat_service.get_history()}
