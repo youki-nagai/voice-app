@@ -14,17 +14,23 @@
 
 ## コード変更後の必須フロー
 
-**コードを修正したら、以下を必ずセットで実行しろ。例外なし。**
+**コードを修正したら `make deploy` を実行しろ。例外なし。**
 
-1. `cd backend && uv run pytest tests/ -v --ignore=tests/test_e2e.py` — ユニットテスト
-2. `uv run ruff check . && uv run ruff format --check .` — lint/format
+```bash
+make deploy BRANCH=<branch-name> MSG="<commit-message>"
+```
+
+これ1コマンドで以下が全自動実行される:
+1. ユニットテスト
+2. lint/format チェック
 3. ブランチ作成 → コミット → push
-4. `gh pr create` → `gh pr merge` — PR作成&マージ
-5. `git checkout develop && git pull origin develop` — developに戻る
-6. `pkill -f "uvicorn app.main:app" && sleep 2 && make dev` — サーバー再起動
-7. `uv run pytest tests/test_e2e.py -v` — E2Eテスト（サーバー稼働中）
+4. PR作成 → マージ
+5. developに戻る
+6. サーバー再起動
+7. E2Eテスト
 
-途中で失敗したら修正してやり直せ。全ステップ完了するまで終わりではない。
+途中で失敗したらスクリプトが即座に停止する（`set -euo pipefail`）。
+失敗原因を修正してから再度 `make deploy` を実行しろ。
 
 ## 技術スタック
 
@@ -42,4 +48,5 @@ make dev        # 開発サーバー起動
 make test       # テスト実行 (uv run pytest)
 make lint       # リント実行 (uv run ruff)
 make verify     # 全検証 (unit tests + lint + E2E tests)
+make deploy     # コード変更後の全自動デプロイ（テスト→PR→マージ→再起動→E2E）
 ```
