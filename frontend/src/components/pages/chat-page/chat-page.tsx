@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useChatStream } from "../../../hooks/use-chat-stream";
 import { useKeyboardShortcut } from "../../../hooks/use-keyboard-shortcut";
 import { useMultiChat } from "../../../hooks/use-multi-chat";
+import { usePanelInput } from "../../../hooks/use-panel-input";
 import { useSessionManager } from "../../../hooks/use-session-manager";
 import {
   DEFAULT_SILENCE_DELAY,
@@ -19,6 +20,7 @@ import type {
   ToolAction,
 } from "../../../types/messages";
 import type { StatusDotStatus } from "../../atoms/status-dot/status-dot";
+import type { PanelProps } from "../../templates/chat-template/chat-template";
 import { ChatTemplate } from "../../templates/chat-template/chat-template";
 
 function computeAppStatus(
@@ -33,18 +35,13 @@ function computeAppStatus(
 export function ChatPage() {
   const [selectedModel, setSelectedModel] =
     useState<ModelId>("claude-opus-4-6");
-  const [primaryTextValue, setPrimaryTextValue] = useState("");
-  const [secondaryTextValue, setSecondaryTextValue] = useState("");
-  const [primaryPendingImages, setPrimaryPendingImages] = useState<string[]>(
-    [],
-  );
-  const [secondaryPendingImages, setSecondaryPendingImages] = useState<
-    string[]
-  >([]);
   const [interimText, setInterimText] = useState<string | null>(null);
   const [isCheatSheetOpen, setIsCheatSheetOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [silenceDelayMs, setSilenceDelayMs] = useState(DEFAULT_SILENCE_DELAY);
+
+  const primaryInput = usePanelInput();
+  const secondaryInput = usePanelInput();
 
   const silenceDelaySeconds = silenceDelayMs / 1000;
   const handleSilenceDelayChange = useCallback((seconds: number) => {
@@ -138,48 +135,57 @@ export function ChatPage() {
   );
 
   const sendMessage = useCallback(
-    (text: string, skipUserDisplay = false) => {
+    (text: string, images: string[] = [], skipUserDisplay = false) => {
       const sid = focusedIdRef.current;
       if (!text.trim() || chat.getIsWaitingForAI(sid)) return;
 
-      const isFocusedOnSecondary =
-        sessionManager.focusedPanel === "secondary" &&
-        sessionManager.secondarySessionId !== null;
-      const pendingImages = isFocusedOnSecondary
-        ? secondaryPendingImages
-        : primaryPendingImages;
-      const setPendingImages = isFocusedOnSecondary
-        ? setSecondaryPendingImages
-        : setPrimaryPendingImages;
-
-      const imagesToSend = [...pendingImages];
-      setPendingImages([]);
-
       if (!skipUserDisplay) {
-        chat.addMessage(sid, text, "user", imagesToSend[0]);
+        chat.addMessage(sid, text, "user", images[0]);
       }
 
       if (handleAppCommand(text)) return;
 
-      stream.send(text, selectedModel, imagesToSend, sid);
+      stream.send(text, selectedModel, images, sid);
     },
-    [
-      chat,
-      selectedModel,
-      primaryPendingImages,
-      secondaryPendingImages,
-      sessionManager.focusedPanel,
-      sessionManager.secondarySessionId,
-      stream,
-      handleAppCommand,
-    ],
+    [chat, selectedModel, stream, handleAppCommand],
+  );
+
+  const handlePanelSend = useCallback(
+    (
+      panel: "primary" | "secondary",
+      clearAndGetInput: () => { text: string; images: string[] } | null,
+    ) => {
+      const sessionId =
+        panel === "secondary"
+          ? sessionManager.secondarySessionId
+          : sessionManager.activeSessionId;
+      if (!sessionId) return;
+
+      const input = clearAndGetInput();
+      if (!input) return;
+
+      sessionManager.setFocusedPanel(panel);
+      focusedIdRef.current = sessionId;
+      sendMessage(input.text, input.images);
+    },
+    [sendMessage, sessionManager],
+  );
+
+  const handlePrimarySend = useCallback(
+    () => handlePanelSend("primary", primaryInput.clearAndGetInput),
+    [handlePanelSend, primaryInput.clearAndGetInput],
+  );
+
+  const handleSecondarySend = useCallback(
+    () => handlePanelSend("secondary", secondaryInput.clearAndGetInput),
+    [handlePanelSend, secondaryInput.clearAndGetInput],
   );
 
   const handleSpeechComplete = useCallback(
     (transcript: string) => {
       setInterimText(null);
       chat.addMessage(focusedIdRef.current, transcript, "user");
-      sendMessage(transcript, true);
+      sendMessage(transcript, [], true);
     },
     [chat, sendMessage],
   );
@@ -194,24 +200,6 @@ export function ChatPage() {
   const handleMicToggle = useCallback(() => {
     speech.setRecordingEnabled(!speech.isRecording);
   }, [speech]);
-
-  const handlePrimarySend = useCallback(() => {
-    if (primaryTextValue.trim()) {
-      sessionManager.setFocusedPanel("primary");
-      focusedIdRef.current = sessionManager.activeSessionId;
-      sendMessage(primaryTextValue);
-      setPrimaryTextValue("");
-    }
-  }, [primaryTextValue, sendMessage, sessionManager]);
-
-  const handleSecondarySend = useCallback(() => {
-    if (secondaryTextValue.trim() && sessionManager.secondarySessionId) {
-      sessionManager.setFocusedPanel("secondary");
-      focusedIdRef.current = sessionManager.secondarySessionId;
-      sendMessage(secondaryTextValue);
-      setSecondaryTextValue("");
-    }
-  }, [secondaryTextValue, sendMessage, sessionManager]);
 
   const handleImagePaste = useCallback(
     (
@@ -329,14 +317,37 @@ export function ChatPage() {
     return timeline;
   };
 
-  const primaryTimeline = buildTimeline(
-    activeId,
-    sessionManager.focusedPanel === "primary" || !sessionManager.isSplitView,
-  );
+  const buildPanelProps = (
+    panel: "primary" | "secondary",
+    sessionId: string,
+    input: typeof primaryInput,
+    onSend: () => void,
+  ): PanelProps => {
+    const showInterim =
+      panel === "primary"
+        ? sessionManager.focusedPanel === "primary" ||
+          !sessionManager.isSplitView
+        : sessionManager.focusedPanel === "secondary";
 
-  const secondaryTimeline = secondaryId
-    ? buildTimeline(secondaryId, sessionManager.focusedPanel === "secondary")
-    : [];
+    return {
+      timeline: buildTimeline(sessionId, showInterim),
+      textValue: input.textValue,
+      onTextChange: input.setTextValue,
+      onSend,
+      isRecording: speech.isRecording && sessionManager.focusedPanel === panel,
+      onMicToggle: handleMicToggle,
+      silenceState:
+        sessionManager.focusedPanel === panel ? speech.silenceState : "idle",
+      countdownKey: speech.countdownKey,
+      isWaitingForAI: chat.getIsWaitingForAI(sessionId),
+      pendingImageUrls: input.pendingImages,
+      onImagePaste: (e) => handleImagePaste(e, input.setPendingImages),
+      onImageRemove: (index) =>
+        input.setPendingImages((prev) => prev.filter((_, i) => i !== index)),
+      silenceDelaySeconds,
+      onSilenceDelayChange: handleSilenceDelayChange,
+    };
+  };
 
   return (
     <ChatTemplate
@@ -356,54 +367,20 @@ export function ChatPage() {
       onNewChat={sessionManager.addSession}
       activeSessionId={activeId}
       secondarySessionId={secondaryId}
-      primary={{
-        timeline: primaryTimeline,
-        textValue: primaryTextValue,
-        onTextChange: setPrimaryTextValue,
-        onSend: handlePrimarySend,
-        isRecording:
-          speech.isRecording && sessionManager.focusedPanel === "primary",
-        onMicToggle: handleMicToggle,
-        silenceState:
-          sessionManager.focusedPanel === "primary"
-            ? speech.silenceState
-            : "idle",
-        countdownKey: speech.countdownKey,
-        isWaitingForAI: chat.getIsWaitingForAI(activeId),
-        pendingImageUrls: primaryPendingImages,
-        onImagePaste: (e) => handleImagePaste(e, setPrimaryPendingImages),
-        onImageRemove: (index) =>
-          setPrimaryPendingImages((prev) => prev.filter((_, i) => i !== index)),
-        silenceDelaySeconds,
-        onSilenceDelayChange: handleSilenceDelayChange,
-      }}
+      primary={buildPanelProps(
+        "primary",
+        activeId,
+        primaryInput,
+        handlePrimarySend,
+      )}
       secondary={
         secondaryId
-          ? {
-              timeline: secondaryTimeline,
-              textValue: secondaryTextValue,
-              onTextChange: setSecondaryTextValue,
-              onSend: handleSecondarySend,
-              isRecording:
-                speech.isRecording &&
-                sessionManager.focusedPanel === "secondary",
-              onMicToggle: handleMicToggle,
-              silenceState:
-                sessionManager.focusedPanel === "secondary"
-                  ? speech.silenceState
-                  : "idle",
-              countdownKey: speech.countdownKey,
-              isWaitingForAI: chat.getIsWaitingForAI(secondaryId),
-              pendingImageUrls: secondaryPendingImages,
-              onImagePaste: (e) =>
-                handleImagePaste(e, setSecondaryPendingImages),
-              onImageRemove: (index) =>
-                setSecondaryPendingImages((prev) =>
-                  prev.filter((_, i) => i !== index),
-                ),
-              silenceDelaySeconds,
-              onSilenceDelayChange: handleSilenceDelayChange,
-            }
+          ? buildPanelProps(
+              "secondary",
+              secondaryId,
+              secondaryInput,
+              handleSecondarySend,
+            )
           : null
       }
     />

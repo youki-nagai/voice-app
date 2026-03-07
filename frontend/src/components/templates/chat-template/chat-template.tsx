@@ -11,7 +11,7 @@ import { ControlBar } from "../../organisms/control-bar/control-bar";
 import { Header } from "../../organisms/header/header";
 import { ThreadSidebar } from "../../organisms/thread-sidebar/thread-sidebar";
 
-interface PanelProps {
+export interface PanelProps {
   timeline: TimelineItem[];
   textValue: string;
   onTextChange: (value: string) => void;
@@ -156,24 +156,11 @@ export function ChatTemplate(props: ChatTemplateProps) {
               />
             </div>
           ) : (
-            <>
-              <ChatArea timeline={props.primary.timeline} />
-              <ControlBar
-                textValue={props.primary.textValue}
-                onTextChange={props.primary.onTextChange}
-                onSend={props.primary.onSend}
-                isRecording={props.primary.isRecording}
-                onMicToggle={props.primary.onMicToggle}
-                silenceState={props.primary.silenceState}
-                countdownKey={props.primary.countdownKey}
-                isWaitingForAI={props.primary.isWaitingForAI}
-                pendingImageUrls={props.primary.pendingImageUrls}
-                onImagePaste={props.primary.onImagePaste}
-                onImageRemove={props.primary.onImageRemove}
-                silenceDelaySeconds={props.primary.silenceDelaySeconds}
-                onSilenceDelayChange={props.primary.onSilenceDelayChange}
-              />
-            </>
+            <ChatPanel
+              panel={props.primary}
+              isFocused={true}
+              onFocus={() => {}}
+            />
           )}
         </div>
       </div>

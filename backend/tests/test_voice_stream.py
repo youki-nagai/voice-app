@@ -1,53 +1,10 @@
 import base64
-import json
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
-from fastapi.testclient import TestClient
-
-from app.dependencies import get_chat_repository, get_claude_code_service
-from app.main import app
+from .conftest import StreamTestBase, fake_execute, parse_sse_events
 
 
-async def fake_execute(*events):
-    for event in events:
-        yield event
-
-
-def _parse_sse_events(text: str) -> list[dict]:
-    events = []
-    for line in text.split("\n"):
-        line = line.strip()
-        if line.startswith("data: "):
-            try:
-                events.append(json.loads(line[6:]))
-            except json.JSONDecodeError:
-                pass
-    return events
-
-
-def _make_mock_chat_repo():
-    mock_repo = MagicMock()
-    mock_thread = MagicMock()
-    mock_thread.id = "test-thread-id"
-    mock_thread.title = None
-    mock_repo.get_or_create_thread = AsyncMock(return_value=mock_thread)
-    mock_repo.add_message = AsyncMock()
-    mock_repo.update_thread_title = AsyncMock()
-    mock_repo.commit = AsyncMock()
-    return mock_repo
-
-
-class TestVoiceStream:
-    def setup_method(self):
-        self._client = TestClient(app)
-
-    def teardown_method(self):
-        app.dependency_overrides.clear()
-
-    def _override(self, mock_claude_code):
-        app.dependency_overrides[get_claude_code_service] = lambda: mock_claude_code
-        app.dependency_overrides[get_chat_repository] = _make_mock_chat_repo
-
+class TestVoiceStream(StreamTestBase):
     def test_given_valid_instruction_when_stream_then_returns_sse_events(self):
         mock_cc = MagicMock()
         mock_cc.execute = MagicMock(
@@ -62,7 +19,7 @@ class TestVoiceStream:
         response = self._client.post("/api/voice/stream", json={"text": "テストファイルを作成して"})
 
         assert response.status_code == 200
-        types = [e["type"] for e in _parse_sse_events(response.text)]
+        types = [e["type"] for e in parse_sse_events(response.text)]
         assert "status" in types
         assert "ai_chunk" in types
         assert "file_change" in types
@@ -82,7 +39,7 @@ class TestVoiceStream:
         response = self._client.post("/api/voice/stream", json={"text": "これは何ですか"})
 
         assert response.status_code == 200
-        types = [e["type"] for e in _parse_sse_events(response.text)]
+        types = [e["type"] for e in parse_sse_events(response.text)]
         assert "ai_chunk" in types
         assert "ai_done" in types
         assert "complete" in types
@@ -94,7 +51,7 @@ class TestVoiceStream:
         response = self._client.post("/api/voice/stream", json={"text": ""})
 
         assert response.status_code == 200
-        events = _parse_sse_events(response.text)
+        events = parse_sse_events(response.text)
         error_event = next(e for e in events if e["type"] == "error")
         assert "指示が空です" in error_event["text"]
 
@@ -113,7 +70,7 @@ class TestVoiceStream:
         response = self._client.post("/api/voice/stream", json={"text": "テスト"})
 
         assert response.status_code == 200
-        ai_chunks = [e for e in _parse_sse_events(response.text) if e["type"] == "ai_chunk"]
+        ai_chunks = [e for e in parse_sse_events(response.text) if e["type"] == "ai_chunk"]
         assert len(ai_chunks) == 3
         assert ai_chunks[0]["text"] == "chunk1"
         assert ai_chunks[1]["text"] == "chunk2"
@@ -144,7 +101,7 @@ class TestVoiceStream:
         )
 
         assert response.status_code == 200
-        types = [e["type"] for e in _parse_sse_events(response.text)]
+        types = [e["type"] for e in parse_sse_events(response.text)]
         assert "ai_chunk" in types
         assert "complete" in types
         # プロンプトに画像パスが含まれていること
