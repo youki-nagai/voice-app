@@ -1,9 +1,9 @@
-import { Header } from '../../organisms/header/header';
-import { ChatArea } from '../../organisms/chat-area/chat-area';
-import { ControlBar } from '../../organisms/control-bar/control-bar';
-import type { ModelId, TimelineItem } from '../../../types/messages';
-import type { GitBadgeStatus } from '../../molecules/git-status-badge/git-status-badge';
-import type { StatusDotStatus } from '../../atoms/status-dot/status-dot';
+import type { ModelId, TimelineItem } from "../../../types/messages";
+import type { StatusDotStatus } from "../../atoms/status-dot/status-dot";
+import type { GitBadgeStatus } from "../../molecules/git-status-badge/git-status-badge";
+import { ChatArea } from "../../organisms/chat-area/chat-area";
+import { ControlBar } from "../../organisms/control-bar/control-bar";
+import { Header } from "../../organisms/header/header";
 
 interface ChatTemplateProps {
   // Header

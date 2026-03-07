@@ -21,6 +21,7 @@ lint:
 
 format:
 	cd backend && uv run ruff check --fix . && uv run ruff format .
+	cd frontend && npm run format
 
 verify:
 	cd backend && uv run pytest tests/ -v && uv run ruff check . && uv run ruff format --check . && uv run pytest tests/test_e2e.py -v

@@ -1,45 +1,45 @@
-import { render, screen } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
-import { ChatArea } from './chat-area';
-import type { TimelineItem } from '../../../types/messages';
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import type { TimelineItem } from "../../../types/messages";
+import { ChatArea } from "./chat-area";
 
-describe('chat-area', () => {
-  it('renders empty chat', () => {
+describe("chat-area", () => {
+  it("renders empty chat", () => {
     render(<ChatArea timeline={[]} />);
-    const chat = screen.getByTestId('chat-area');
+    const chat = screen.getByTestId("chat-area");
     expect(chat).toBeInTheDocument();
   });
 
-  it('renders messages', () => {
+  it("renders messages", () => {
     const timeline: TimelineItem[] = [
-      { kind: 'message', data: { id: '1', type: 'user', text: 'こんにちは' } },
-      { kind: 'message', data: { id: '2', type: 'ai', text: '応答です' } },
+      { kind: "message", data: { id: "1", type: "user", text: "こんにちは" } },
+      { kind: "message", data: { id: "2", type: "ai", text: "応答です" } },
     ];
     render(<ChatArea timeline={timeline} />);
-    expect(screen.getByText('こんにちは')).toBeInTheDocument();
-    expect(screen.getByText('応答です')).toBeInTheDocument();
+    expect(screen.getByText("こんにちは")).toBeInTheDocument();
+    expect(screen.getByText("応答です")).toBeInTheDocument();
   });
 
-  it('renders processing message with spinner', () => {
+  it("renders processing message with spinner", () => {
     const timeline: TimelineItem[] = [
-      { kind: 'processing', id: 'processing', text: '送信中...' },
+      { kind: "processing", id: "processing", text: "送信中..." },
     ];
     render(<ChatArea timeline={timeline} />);
-    expect(screen.getByText('送信中...')).toBeInTheDocument();
+    expect(screen.getByText("送信中...")).toBeInTheDocument();
   });
 
-  it('renders action logs', () => {
+  it("renders action logs", () => {
     const timeline: TimelineItem[] = [
       {
-        kind: 'action-log',
+        kind: "action-log",
         data: {
-          id: 'log1',
-          status: 'running',
-          actions: [{ tool: 'bash', text: 'テスト実行', status: 'running' }],
+          id: "log1",
+          status: "running",
+          actions: [{ tool: "bash", text: "テスト実行", status: "running" }],
         },
       },
     ];
     render(<ChatArea timeline={timeline} />);
-    expect(screen.getAllByText('テスト実行').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("テスト実行").length).toBeGreaterThanOrEqual(1);
   });
 });

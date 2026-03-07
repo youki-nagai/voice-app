@@ -1,65 +1,73 @@
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { describe, it, expect } from 'vitest';
-import { ActionLog } from './action-log';
-import type { ToolAction } from '../../../types/messages';
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it } from "vitest";
+import type { ToolAction } from "../../../types/messages";
+import { ActionLog } from "./action-log";
 
-describe('action-log', () => {
+describe("action-log", () => {
   const actions: ToolAction[] = [
-    { tool: 'bash', text: 'コマンド実行', status: 'done' },
-    { tool: 'read', text: 'ファイル読み込み', status: 'running' },
+    { tool: "bash", text: "コマンド実行", status: "done" },
+    { tool: "read", text: "ファイル読み込み", status: "running" },
   ];
 
-  it('renders action count', () => {
+  it("renders action count", () => {
     render(<ActionLog actions={actions} status="running" />);
-    expect(screen.getByTestId('action-count')).toHaveTextContent('2');
+    expect(screen.getByTestId("action-count")).toHaveTextContent("2");
   });
 
-  it('shows spinner when running', () => {
+  it("shows spinner when running", () => {
     render(<ActionLog actions={actions} status="running" />);
-    expect(screen.getByTestId('action-log-spinner')).toBeInTheDocument();
+    expect(screen.getByTestId("action-log-spinner")).toBeInTheDocument();
   });
 
-  it('does not show spinner when done', () => {
+  it("does not show spinner when done", () => {
     render(<ActionLog actions={actions} status="done" />);
-    expect(screen.queryByTestId('action-log-spinner')).not.toBeInTheDocument();
+    expect(screen.queryByTestId("action-log-spinner")).not.toBeInTheDocument();
   });
 
-  it('shows current action text when running', () => {
+  it("shows current action text when running", () => {
     render(<ActionLog actions={actions} status="running" />);
-    expect(screen.getByTestId('action-log-current')).toHaveTextContent('ファイル読み込み');
+    expect(screen.getByTestId("action-log-current")).toHaveTextContent(
+      "ファイル読み込み",
+    );
   });
 
-  it('shows 完了 when done', () => {
+  it("shows 完了 when done", () => {
     render(<ActionLog actions={actions} status="done" />);
-    expect(screen.getByTestId('action-log-current')).toHaveTextContent('完了');
+    expect(screen.getByTestId("action-log-current")).toHaveTextContent("完了");
   });
 
-  it('renders all action items', () => {
+  it("renders all action items", () => {
     render(<ActionLog actions={actions} status="running" />);
-    expect(screen.getByText('コマンド実行')).toBeInTheDocument();
+    expect(screen.getByText("コマンド実行")).toBeInTheDocument();
     // 'ファイル読み込み' appears in both action-log-current and action-list
-    expect(screen.getAllByText('ファイル読み込み').length).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.getAllByText("ファイル読み込み").length,
+    ).toBeGreaterThanOrEqual(1);
   });
 
-  it('collapses when done', async () => {
+  it("collapses when done", async () => {
     const { container } = render(<ActionLog actions={actions} status="done" />);
-    const details = container.querySelector('details');
-    expect(details).not.toHaveAttribute('open');
+    const details = container.querySelector("details");
+    expect(details).not.toHaveAttribute("open");
   });
 
-  it('is open when running', () => {
-    const { container } = render(<ActionLog actions={actions} status="running" />);
-    const details = container.querySelector('details');
-    expect(details).toHaveAttribute('open');
+  it("is open when running", () => {
+    const { container } = render(
+      <ActionLog actions={actions} status="running" />,
+    );
+    const details = container.querySelector("details");
+    expect(details).toHaveAttribute("open");
   });
 
-  it('can toggle open/close', async () => {
+  it("can toggle open/close", async () => {
     const user = userEvent.setup();
-    const { container } = render(<ActionLog actions={actions} status="running" />);
-    const summary = container.querySelector('summary')!;
+    const { container } = render(
+      <ActionLog actions={actions} status="running" />,
+    );
+    const summary = container.querySelector("summary") as HTMLElement;
     await user.click(summary);
-    const details = container.querySelector('details');
-    expect(details).not.toHaveAttribute('open');
+    const details = container.querySelector("details");
+    expect(details).not.toHaveAttribute("open");
   });
 });
