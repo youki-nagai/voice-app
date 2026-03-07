@@ -1,4 +1,4 @@
-import { Input } from "@/components/ui/input";
+import { useEffect, useRef } from "react";
 
 interface TextInputProps {
   value: string;
@@ -15,6 +15,8 @@ export function TextInput({
   onPaste,
   placeholder,
 }: TextInputProps) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -22,15 +24,23 @@ export function TextInput({
     }
   };
 
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+
   return (
-    <Input
-      type="text"
-      className="flex-1 border-0 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-0"
+    <textarea
+      ref={textareaRef}
+      className="flex-1 resize-none border-0 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0"
       value={value}
       onChange={(e) => onChange(e.target.value)}
       onKeyDown={handleKeyDown}
       onPaste={onPaste}
       placeholder={placeholder}
+      rows={1}
     />
   );
 }
