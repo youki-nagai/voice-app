@@ -1,29 +1,29 @@
-import { render, screen } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
-import { StatusDot } from './StatusDot';
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import { StatusDot } from "./StatusDot";
 
-describe('StatusDot', () => {
-  it('renders with connected status', () => {
+describe("StatusDot", () => {
+  it("renders with connected status", () => {
     render(<StatusDot status="connected" />);
-    const dot = screen.getByTestId('status-dot');
-    expect(dot).toHaveClass('connected');
+    const dot = screen.getByTestId("status-dot");
+    expect(dot).toHaveClass("connected");
   });
 
-  it('renders with recording status', () => {
+  it("renders with recording status", () => {
     render(<StatusDot status="recording" />);
-    const dot = screen.getByTestId('status-dot');
-    expect(dot).toHaveClass('recording');
+    const dot = screen.getByTestId("status-dot");
+    expect(dot).toHaveClass("recording");
   });
 
-  it('renders with processing status', () => {
+  it("renders with processing status", () => {
     render(<StatusDot status="processing" />);
-    const dot = screen.getByTestId('status-dot');
-    expect(dot).toHaveClass('processing');
+    const dot = screen.getByTestId("status-dot");
+    expect(dot).toHaveClass("processing");
   });
 
-  it('renders with error status', () => {
+  it("renders with error status", () => {
     render(<StatusDot status="error" />);
-    const dot = screen.getByTestId('status-dot');
-    expect(dot).toHaveClass('error');
+    const dot = screen.getByTestId("status-dot");
+    expect(dot).toHaveClass("error");
   });
 });

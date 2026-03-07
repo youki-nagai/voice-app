@@ -1,4 +1,4 @@
-import './TextInput.css';
+import "./TextInput.css";
 
 interface TextInputProps {
   value: string;
@@ -8,9 +8,15 @@ interface TextInputProps {
   placeholder?: string;
 }
 
-export function TextInput({ value, onChange, onSubmit, onPaste, placeholder }: TextInputProps) {
+export function TextInput({
+  value,
+  onChange,
+  onSubmit,
+  onPaste,
+  placeholder,
+}: TextInputProps) {
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       onSubmit?.();
     }

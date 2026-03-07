@@ -1,7 +1,7 @@
-import { TextInput } from '../../atoms/TextInput/TextInput';
-import { IconButton } from '../../atoms/IconButton/IconButton';
-import { MicIcon, SendIcon } from '../../atoms/Icons';
-import './ControlBar.css';
+import { IconButton } from "../../atoms/IconButton/IconButton";
+import { MicIcon, SendIcon } from "../../atoms/Icons";
+import { TextInput } from "../../atoms/TextInput/TextInput";
+import "./ControlBar.css";
 
 interface ControlBarProps {
   textValue: string;
@@ -40,7 +40,14 @@ export function ControlBar({
         {pendingImageUrl && (
           <span className="image-preview-container">
             <img src={pendingImageUrl} alt="添付画像" />
-            <button className="image-preview-remove" title="画像を削除" onClick={onImageRemove}>&times;</button>
+            <button
+              type="button"
+              className="image-preview-remove"
+              title="画像を削除"
+              onClick={onImageRemove}
+            >
+              &times;
+            </button>
           </span>
         )}
         <TextInput

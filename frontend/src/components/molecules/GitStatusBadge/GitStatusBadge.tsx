@@ -1,8 +1,8 @@
-import { StatusDot } from '../../atoms/StatusDot/StatusDot';
-import type { StatusDotStatus } from '../../atoms/StatusDot/StatusDot';
-import './GitStatusBadge.css';
+import type { StatusDotStatus } from "../../atoms/StatusDot/StatusDot";
+import { StatusDot } from "../../atoms/StatusDot/StatusDot";
+import "./GitStatusBadge.css";
 
-export type GitBadgeStatus = 'checking' | 'ok' | 'warn' | 'error';
+export type GitBadgeStatus = "checking" | "ok" | "warn" | "error";
 
 interface GitStatusBadgeProps {
   status: GitBadgeStatus;
@@ -11,26 +11,35 @@ interface GitStatusBadgeProps {
 }
 
 const STATUS_MAP: Record<GitBadgeStatus, StatusDotStatus> = {
-  checking: 'processing',
-  ok: 'ok',
-  warn: 'warn',
-  error: 'error',
+  checking: "processing",
+  ok: "ok",
+  warn: "warn",
+  error: "error",
 };
 
 const TEXT_MAP: Record<GitBadgeStatus, string> = {
-  checking: 'Git: 確認中',
-  ok: 'Git: ',
-  warn: 'Git: 一部エラー',
-  error: 'Git: 未設定',
+  checking: "Git: 確認中",
+  ok: "Git: ",
+  warn: "Git: 一部エラー",
+  error: "Git: 未設定",
 };
 
-export function GitStatusBadge({ status, branchName, onClick }: GitStatusBadgeProps) {
-  const text = status === 'ok' ? `Git: ${branchName}` : TEXT_MAP[status];
+export function GitStatusBadge({
+  status,
+  branchName,
+  onClick,
+}: GitStatusBadgeProps) {
+  const text = status === "ok" ? `Git: ${branchName}` : TEXT_MAP[status];
 
   return (
-    <div className="git-status" title="クリックでGit状態を再チェック" onClick={onClick}>
+    <button
+      type="button"
+      className="git-status"
+      title="クリックでGit状態を再チェック"
+      onClick={onClick}
+    >
       <StatusDot status={STATUS_MAP[status]} />
       <span>{text}</span>
-    </div>
+    </button>
   );
 }

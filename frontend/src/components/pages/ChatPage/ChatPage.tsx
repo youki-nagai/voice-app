@@ -1,18 +1,23 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { ChatTemplate } from '../../templates/ChatTemplate/ChatTemplate';
-import { useChat } from '../../../hooks/useChat';
-import { useSpeechRecognition } from '../../../hooks/useSpeechRecognition';
-import { useGitStatus } from '../../../hooks/useGitStatus';
-import { useGitCommands } from '../../../hooks/useGitCommands';
-import { useSSE } from '../../../hooks/useSSE';
-import { detectGitCommand, detectModelCommand } from '../../../types/git';
-import type { ModelId, ServerMessage, TimelineItem } from '../../../types/messages';
-import type { StatusDotStatus } from '../../atoms/StatusDot/StatusDot';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useChat } from "../../../hooks/useChat";
+import { useGitCommands } from "../../../hooks/useGitCommands";
+import { useGitStatus } from "../../../hooks/useGitStatus";
+import { useSpeechRecognition } from "../../../hooks/useSpeechRecognition";
+import { useSSE } from "../../../hooks/useSSE";
+import { detectGitCommand, detectModelCommand } from "../../../types/git";
+import type {
+  ModelId,
+  ServerMessage,
+  TimelineItem,
+} from "../../../types/messages";
+import type { StatusDotStatus } from "../../atoms/StatusDot/StatusDot";
+import { ChatTemplate } from "../../templates/ChatTemplate/ChatTemplate";
 
 export function ChatPage() {
-  const [selectedModel, setSelectedModel] = useState<ModelId>('claude-opus-4-6');
+  const [selectedModel, setSelectedModel] =
+    useState<ModelId>("claude-opus-4-6");
   const [isWaitingForAI, setIsWaitingForAI] = useState(false);
-  const [textValue, setTextValue] = useState('');
+  const [textValue, setTextValue] = useState("");
   const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
   const [interimText, setInterimText] = useState<string | null>(null);
   const interimIdRef = useRef<string | null>(null);
@@ -24,104 +29,132 @@ export function ChatPage() {
     checkGitStatus,
   });
 
-  const handleServerMessage = useCallback((msg: ServerMessage) => {
-    switch (msg.type) {
-      case 'status':
-        chat.setProcessingText(msg.text);
-        setIsWaitingForAI(true);
-        break;
-      case 'tool_action':
-        chat.setProcessingText(null);
-        chat.addToolAction(msg.tool, msg.text);
-        setIsWaitingForAI(true);
-        break;
-      case 'ai_chunk':
-        chat.setProcessingText(null);
-        chat.finalizeActionLog();
-        chat.appendAiChunk(msg.text);
-        break;
-      case 'ai_done':
-        chat.finalizeAiMessage();
-        break;
-      case 'test_result':
-        if (msg.success) {
-          chat.addMessage(`テスト OK (passed: ${msg.passed}, failed: ${msg.failed})`, 'test-pass');
-        } else {
-          chat.addMessage(`テスト NG (passed: ${msg.passed}, failed: ${msg.failed})\n${msg.output || ''}`, 'test-fail');
-        }
-        break;
-      case 'lint_result':
-        chat.addMessage(msg.success ? 'lint OK' : `lint NG\n${msg.output || ''}`, msg.success ? 'test-pass' : 'test-fail');
-        break;
-      case 'verify_failed':
-        chat.addMessage(msg.text, 'verify-failed');
-        break;
-      case 'commit':
-        chat.addMessage(`committed: ${msg.message}`, 'commit');
-        break;
-      case 'complete':
-        setIsWaitingForAI(false);
-        chat.setProcessingText(null);
-        chat.finalizeActionLog();
-        break;
-      case 'error':
-        setIsWaitingForAI(false);
-        chat.setProcessingText(null);
-        chat.finalizeActionLog();
-        chat.addMessage(msg.text, 'error');
-        break;
-    }
-  }, [chat]);
+  const handleServerMessage = useCallback(
+    (msg: ServerMessage) => {
+      switch (msg.type) {
+        case "status":
+          chat.setProcessingText(msg.text);
+          setIsWaitingForAI(true);
+          break;
+        case "tool_action":
+          chat.setProcessingText(null);
+          chat.addToolAction(msg.tool, msg.text);
+          setIsWaitingForAI(true);
+          break;
+        case "ai_chunk":
+          chat.setProcessingText(null);
+          chat.finalizeActionLog();
+          chat.appendAiChunk(msg.text);
+          break;
+        case "ai_done":
+          chat.finalizeAiMessage();
+          break;
+        case "test_result":
+          if (msg.success) {
+            chat.addMessage(
+              `テスト OK (passed: ${msg.passed}, failed: ${msg.failed})`,
+              "test-pass",
+            );
+          } else {
+            chat.addMessage(
+              `テスト NG (passed: ${msg.passed}, failed: ${msg.failed})\n${msg.output || ""}`,
+              "test-fail",
+            );
+          }
+          break;
+        case "lint_result":
+          chat.addMessage(
+            msg.success ? "lint OK" : `lint NG\n${msg.output || ""}`,
+            msg.success ? "test-pass" : "test-fail",
+          );
+          break;
+        case "verify_failed":
+          chat.addMessage(msg.text, "verify-failed");
+          break;
+        case "commit":
+          chat.addMessage(`committed: ${msg.message}`, "commit");
+          break;
+        case "complete":
+          setIsWaitingForAI(false);
+          chat.setProcessingText(null);
+          chat.finalizeActionLog();
+          break;
+        case "error":
+          setIsWaitingForAI(false);
+          chat.setProcessingText(null);
+          chat.finalizeActionLog();
+          chat.addMessage(msg.text, "error");
+          break;
+      }
+    },
+    [chat],
+  );
 
   const sse = useSSE({
     onMessage: handleServerMessage,
     onError: (error) => {
       setIsWaitingForAI(false);
       chat.setProcessingText(null);
-      chat.addMessage(`エラー: ${error}`, 'error');
+      chat.addMessage(`エラー: ${error}`, "error");
     },
     onRetry: (retryCount, delay) => {
-      chat.addMessage(`ネットワークエラー。${delay / 1000}秒後にリトライします... (${retryCount}/${3})`, 'error');
+      chat.addMessage(
+        `ネットワークエラー。${delay / 1000}秒後にリトライします... (${retryCount}/${3})`,
+        "error",
+      );
     },
   });
 
-  const sendMessage = useCallback((text: string, skipUserDisplay = false) => {
-    if (!text.trim() || isWaitingForAI) return;
+  const sendMessage = useCallback(
+    (text: string, skipUserDisplay = false) => {
+      if (!text.trim() || isWaitingForAI) return;
 
-    if (!skipUserDisplay) {
-      chat.addMessage(text, 'user');
-    }
+      if (!skipUserDisplay) {
+        chat.addMessage(text, "user");
+      }
 
-    const modelCmd = detectModelCommand(text);
-    if (modelCmd) {
-      setSelectedModel(modelCmd as ModelId);
-      const label = modelCmd.includes('opus') ? 'Opus' : 'Sonnet';
-      chat.addMessage(`モデル切替: ${label}`, 'system');
-      return;
-    }
+      const modelCmd = detectModelCommand(text);
+      if (modelCmd) {
+        setSelectedModel(modelCmd as ModelId);
+        const label = modelCmd.includes("opus") ? "Opus" : "Sonnet";
+        chat.addMessage(`モデル切替: ${label}`, "system");
+        return;
+      }
 
-    const gitAction = detectGitCommand(text);
-    if (gitAction) {
-      executeGitCommand(gitAction, text);
-      return;
-    }
+      const gitAction = detectGitCommand(text);
+      if (gitAction) {
+        executeGitCommand(gitAction, text);
+        return;
+      }
 
-    const imageToSend = pendingImageUrl;
-    setPendingImageUrl(null);
+      const imageToSend = pendingImageUrl;
+      setPendingImageUrl(null);
 
-    chat.setProcessingText('送信中...');
-    setIsWaitingForAI(true);
-    sse.sendStream(text, selectedModel, imageToSend);
-  }, [isWaitingForAI, chat, selectedModel, pendingImageUrl, sse, executeGitCommand]);
+      chat.setProcessingText("送信中...");
+      setIsWaitingForAI(true);
+      sse.sendStream(text, selectedModel, imageToSend);
+    },
+    [
+      isWaitingForAI,
+      chat,
+      selectedModel,
+      pendingImageUrl,
+      sse,
+      executeGitCommand,
+    ],
+  );
 
-  const handleSpeechComplete = useCallback((transcript: string) => {
-    if (interimIdRef.current) {
-      setInterimText(null);
-      interimIdRef.current = null;
-    }
-    chat.addMessage(transcript, 'user');
-    sendMessage(transcript, true);
-  }, [chat, sendMessage]);
+  const handleSpeechComplete = useCallback(
+    (transcript: string) => {
+      if (interimIdRef.current) {
+        setInterimText(null);
+        interimIdRef.current = null;
+      }
+      chat.addMessage(transcript, "user");
+      sendMessage(transcript, true);
+    },
+    [chat, sendMessage],
+  );
 
   const speech = useSpeechRecognition({
     onSpeechComplete: handleSpeechComplete,
@@ -129,7 +162,7 @@ export function ChatPage() {
       setInterimText(text);
     },
     onError: (error) => {
-      chat.addMessage(error, 'error');
+      chat.addMessage(error, "error");
     },
   });
 
@@ -145,22 +178,25 @@ export function ChatPage() {
   const handleSend = useCallback(() => {
     if (textValue.trim()) {
       sendMessage(textValue);
-      setTextValue('');
+      setTextValue("");
     }
   }, [textValue, sendMessage]);
 
-  const handleModelChange = useCallback((model: ModelId) => {
-    setSelectedModel(model);
-    const label = model.includes('opus') ? 'Opus' : 'Sonnet';
-    chat.addMessage(`モデル切替: ${label}`, 'system');
-  }, [chat]);
+  const handleModelChange = useCallback(
+    (model: ModelId) => {
+      setSelectedModel(model);
+      const label = model.includes("opus") ? "Opus" : "Sonnet";
+      chat.addMessage(`モデル切替: ${label}`, "system");
+    },
+    [chat],
+  );
 
   const handleGitStatusClick = useCallback(async () => {
     const detail = await checkGitStatus();
     if (detail) {
-      chat.addMessage(detail, 'system');
+      chat.addMessage(detail, "system");
     } else {
-      chat.addMessage('Git状態の取得に失敗しました', 'error');
+      chat.addMessage("Git状態の取得に失敗しました", "error");
     }
   }, [checkGitStatus, chat]);
 
@@ -168,7 +204,7 @@ export function ChatPage() {
     const items = e.clipboardData?.items;
     if (!items) return;
     for (const item of Array.from(items)) {
-      if (item.type.startsWith('image/')) {
+      if (item.type.startsWith("image/")) {
         e.preventDefault();
         const file = item.getAsFile();
         if (!file) return;
@@ -182,12 +218,11 @@ export function ChatPage() {
     }
   }, []);
 
-  // Initialize
+  // biome-ignore lint/correctness/useExhaustiveDependencies: initialization effect - runs once on mount
   useEffect(() => {
     checkGitStatus();
     const timer = setTimeout(() => speech.startRecording(), 500);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Visibility change handler
@@ -206,25 +241,28 @@ export function ChatPage() {
         }
       }
     };
-    document.addEventListener('visibilitychange', handler);
-    return () => document.removeEventListener('visibilitychange', handler);
+    document.addEventListener("visibilitychange", handler);
+    return () => document.removeEventListener("visibilitychange", handler);
   }, [speech]);
 
   // Compute app status
-  let appStatus: StatusDotStatus = 'connected';
-  let appStatusText = '準備完了';
+  let appStatus: StatusDotStatus = "connected";
+  let appStatusText = "準備完了";
   if (isWaitingForAI) {
-    appStatus = 'processing';
-    appStatusText = 'AI処理中';
+    appStatus = "processing";
+    appStatusText = "AI処理中";
   } else if (speech.isRecording) {
-    appStatus = 'recording';
-    appStatusText = '録音中';
+    appStatus = "recording";
+    appStatusText = "録音中";
   }
 
   // Build display timeline with interim text appended
   const displayTimeline: TimelineItem[] = [...chat.timeline];
   if (interimText) {
-    displayTimeline.push({ kind: 'message', data: { id: 'interim', type: 'interim', text: interimText } });
+    displayTimeline.push({
+      kind: "message",
+      data: { id: "interim", type: "interim", text: interimText },
+    });
   }
 
   return (
