@@ -64,6 +64,7 @@ echo ""
 echo "=== Step 5: PR → Merge ==="
 PR_URL=$(gh pr create --title "$MESSAGE" --base develop --body "Auto-deployed via scripts/deploy.sh")
 echo "PR: $PR_URL"
+gh pr view --web
 gh pr merge --merge
 echo ""
 
