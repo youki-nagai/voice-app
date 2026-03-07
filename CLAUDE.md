@@ -36,6 +36,9 @@ make deploy BRANCH=<branch-name> MSG="<commit-message>"
 途中で失敗したらスクリプトが即座に停止する（`set -euo pipefail`）。
 失敗原因を修正してから再度 `make deploy` を実行しろ。
 
+**`make deploy` が成功したら `/git-retrospective` を実行しろ。例外なし。**
+同じ失敗を繰り返さないために、毎回 git log を分析して繰り返しパターンを検出する。
+
 ## テスト哲学
 
 Google "Software Engineering at Google" に準拠。詳細は `.claude/skills/test-philosophy/SKILL.md` を参照。
