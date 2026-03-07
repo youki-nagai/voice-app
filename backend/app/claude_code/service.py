@@ -32,6 +32,8 @@ class ClaudeCodeService:
             claude_bin,
             "-p",
             prompt,
+            "--model",
+            "claude-opus-4-6",
             "--output-format",
             "stream-json",
             "--verbose",
