@@ -6,11 +6,16 @@ import { useSSE } from "./use-sse";
 interface UseChatStreamOptions {
   chat: ReturnType<typeof useMultiChat>;
   getActiveSessionId: () => string;
+  onCommand?: (
+    commandType: "model" | "app",
+    command: Record<string, unknown>,
+  ) => void;
 }
 
 export function useChatStream({
   chat,
   getActiveSessionId,
+  onCommand,
 }: UseChatStreamOptions) {
   const sendingSessionIdRef = useRef<string | null>(null);
 
@@ -40,6 +45,11 @@ export function useChatStream({
         case "ai_done":
           chat.finalizeAiMessage(sid);
           break;
+        case "command":
+          chat.resetStreamState(sid);
+          onCommand?.(msg.command_type, msg.command);
+          sendingSessionIdRef.current = null;
+          break;
         case "complete":
           chat.resetStreamState(sid);
           sendingSessionIdRef.current = null;
@@ -51,7 +61,7 @@ export function useChatStream({
           break;
       }
     },
-    [chat, getSessionId],
+    [chat, getSessionId, onCommand],
   );
 
   const sse = useSSE({

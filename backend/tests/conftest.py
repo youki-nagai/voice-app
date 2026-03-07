@@ -3,8 +3,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 from fastapi.testclient import TestClient
 
-from app.dependencies import get_chat_repository, get_claude_code_service
+from app.dependencies import get_chat_repository, get_claude_code_service, get_voice_command_classifier
 from app.main import app
+from app.voice.classifier import ClassifyResult
 
 
 async def fake_execute(*events):
@@ -45,6 +46,10 @@ class StreamTestBase:
     def teardown_method(self):
         app.dependency_overrides.clear()
 
-    def _override(self, mock_claude_code):
+    def _override(self, mock_claude_code, mock_classifier=None):
         app.dependency_overrides[get_claude_code_service] = lambda: mock_claude_code
         app.dependency_overrides[get_chat_repository] = make_mock_chat_repo
+        if mock_classifier is None:
+            mock_classifier = MagicMock()
+            mock_classifier.classify = AsyncMock(return_value=ClassifyResult(is_command=False))
+        app.dependency_overrides[get_voice_command_classifier] = lambda: mock_classifier

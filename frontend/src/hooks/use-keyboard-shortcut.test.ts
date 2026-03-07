@@ -29,5 +29,4 @@ describe("useKeyboardShortcut", () => {
     document.dispatchEvent(event);
     expect(spy).toHaveBeenCalled();
   });
-
 });

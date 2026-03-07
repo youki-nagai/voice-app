@@ -9,7 +9,8 @@ from sse_starlette import EventSourceResponse
 
 from app.chat.repository import ChatRepository
 from app.claude_code.service import ClaudeCodeService
-from app.dependencies import ChatRepoDep, ClaudeCodeDep
+from app.dependencies import ChatRepoDep, ClassifierDep, ClaudeCodeDep
+from app.voice.classifier import VoiceCommandClassifier
 from app.voice.image import build_prompt, save_image
 from app.voice.sse import sse_event, stream_with_keepalive
 
@@ -29,11 +30,26 @@ async def _generate_events(
     instruction: str,
     claude_code: ClaudeCodeService,
     chat_repo: ChatRepository,
+    classifier: VoiceCommandClassifier,
     req: StreamRequest,
 ) -> AsyncGenerator[dict]:
     if not instruction.strip():
         yield sse_event({"type": "error", "text": "指示が空です"})
         return
+
+    try:
+        result = await classifier.classify(instruction)
+        if result.is_command:
+            yield sse_event(
+                {
+                    "type": "command",
+                    "command_type": result.command_type,
+                    "command": result.command,
+                }
+            )
+            return
+    except Exception:
+        logger.exception("コマンド分類に失敗。通常処理にフォールバック")
 
     image_paths = [save_image(img) for img in req.images] or None
 
@@ -92,6 +108,7 @@ async def stream(
     req: StreamRequest,
     claude_code: ClaudeCodeDep,
     chat_repo: ChatRepoDep,
+    classifier: ClassifierDep,
 ):
     async def event_generator() -> AsyncGenerator[dict]:
         try:
@@ -99,6 +116,7 @@ async def stream(
                 req.text,
                 claude_code,
                 chat_repo,
+                classifier,
                 req,
             ):
                 yield event
