@@ -1,13 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Usage: ./scripts/deploy.sh <branch-name> <commit-message>
-# 全ステップを自動実行: テスト→lint→E2E→ブランチ→コミット→PR→マージ→サーバー再起動
+# Usage: ./scripts/deploy.sh <branch-name> <commit-message> [worktree-name]
+# 全ステップを自動実行: テスト→lint→E2E→ブランチ→コミット→PR→マージ→サーバー再起動→ワークツリー削除
 
-BRANCH="${1:?Usage: $0 <branch-name> <commit-message>}"
-MESSAGE="${2:?Usage: $0 <branch-name> <commit-message>}"
+BRANCH="${1:?Usage: $0 <branch-name> <commit-message> [worktree-name]}"
+MESSAGE="${2:?Usage: $0 <branch-name> <commit-message> [worktree-name]}"
+WORKTREE="${3:-}"
 
-cd "$(dirname "$0")/.."
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+# ワークツリー内から実行された場合、本体リポジトリのルートを取得
+MAIN_REPO="$(git -C "$REPO_ROOT" worktree list --porcelain | head -1 | sed 's/^worktree //')"
+
+cd "$REPO_ROOT"
 
 wait_for_server() {
     for i in $(seq 1 10); do
@@ -73,5 +79,21 @@ cd ..
 wait_for_server
 echo "Server restarted."
 echo ""
+
+if [ -n "$WORKTREE" ]; then
+    WORKTREE_PATH="$MAIN_REPO/.claude/worktrees/$WORKTREE"
+    if [ -d "$WORKTREE_PATH" ]; then
+        echo "=== Step 8: Worktree cleanup ==="
+        git -C "$MAIN_REPO" worktree remove "$WORKTREE_PATH"
+        WORKTREE_BRANCH="worktree-$WORKTREE"
+        if git -C "$MAIN_REPO" rev-parse --verify "$WORKTREE_BRANCH" >/dev/null 2>&1; then
+            git -C "$MAIN_REPO" branch -D "$WORKTREE_BRANCH"
+        fi
+        echo "Worktree '$WORKTREE' を削除しました。"
+        echo ""
+    else
+        echo "WARNING: ワークツリー '$WORKTREE_PATH' が見つかりません。スキップします。" >&2
+    fi
+fi
 
 echo "=== ALL STEPS COMPLETE ==="
