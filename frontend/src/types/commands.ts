@@ -41,6 +41,7 @@ export type AppCommand =
   | { type: "switch-session"; target: number | "next" | "prev" }
   | { type: "toggle-cheat-sheet" }
   | { type: "set-silence-delay"; seconds: number }
+  | { type: "split" }
   | { type: "unsplit" };
 
 function normalizeFullWidthDigits(s: string): string {
@@ -90,6 +91,20 @@ export function detectAppCommand(text: string): AppCommand | null {
     if (seconds >= 0.5 && seconds <= 10) {
       return { type: "set-silence-delay", seconds };
     }
+  }
+
+  // Split
+  if (
+    n.includes("ペイン分割") ||
+    n.includes("ペインわけ") ||
+    n.includes("ペイン分け") ||
+    n.includes("画面分割") ||
+    n.includes("分割して") ||
+    n.includes("分割し て") ||
+    n.includes("パネル分割") ||
+    n.includes("splitして")
+  ) {
+    return { type: "split" };
   }
 
   // Unsplit
