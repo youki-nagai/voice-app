@@ -35,8 +35,8 @@ export function ControlBar({
   };
 
   return (
-    <div className="flex items-end gap-4 border-t border-border bg-background px-5 py-4">
-      <div className="flex flex-1 items-center gap-3 rounded-3xl border border-border bg-card px-4 py-2">
+    <div className="flex items-start gap-4 border-t border-border bg-background px-5 py-4">
+      <div className="flex flex-1 items-center gap-3 rounded-3xl border border-border bg-card px-4 py-3">
         {pendingImageUrl && (
           <span className="relative mr-2 inline-block">
             <img
