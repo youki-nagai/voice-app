@@ -42,7 +42,7 @@ class Message(Base):
     role: Mapped[str]  # "user" | "ai" | "system" | "error"
     text: Mapped[str] = mapped_column(Text, default="")
     model: Mapped[str | None] = mapped_column(default=None)
-    images: Mapped[list | None] = mapped_column(JSONB, default=None)
-    tool_actions: Mapped[list | None] = mapped_column(JSONB, default=None)
+    images: Mapped[list[str] | None] = mapped_column(JSONB, default=None)
+    tool_actions: Mapped[list[dict[str, str]] | None] = mapped_column(JSONB, default=None)
 
     thread: Mapped["Thread"] = relationship(back_populates="messages")

@@ -1,29 +1,9 @@
 import base64
-import json
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
-from fastapi.testclient import TestClient
+from app.voice.image import save_image
 
-from app.dependencies import get_chat_repository, get_claude_code_service
-from app.main import app
-from app.voice.router import _save_image
-
-
-async def fake_execute(*events):
-    for event in events:
-        yield event
-
-
-def _parse_sse_events(text: str) -> list[dict]:
-    events = []
-    for line in text.split("\n"):
-        line = line.strip()
-        if line.startswith("data: "):
-            try:
-                events.append(json.loads(line[6:]))
-            except json.JSONDecodeError:
-                pass
-    return events
+from .conftest import StreamTestBase, fake_execute, parse_sse_events
 
 
 class TestSaveImage:
@@ -37,7 +17,7 @@ class TestSaveImage:
         encoded = base64.b64encode(png_bytes).decode()
         data_url = f"data:image/png;base64,{encoded}"
 
-        result = _save_image(data_url)
+        result = save_image(data_url)
 
         try:
             assert result.suffix == ".png"
@@ -51,7 +31,7 @@ class TestSaveImage:
         encoded = base64.b64encode(fake_jpeg).decode()
         data_url = f"data:image/jpeg;base64,{encoded}"
 
-        result = _save_image(data_url)
+        result = save_image(data_url)
 
         try:
             assert result.suffix == ".jpg"
@@ -64,7 +44,7 @@ class TestSaveImage:
         encoded = base64.b64encode(svg_data).decode()
         data_url = f"data:image/svg+xml;base64,{encoded}"
 
-        result = _save_image(data_url)
+        result = save_image(data_url)
 
         try:
             assert result.suffix == ".svg"
@@ -76,7 +56,7 @@ class TestSaveImage:
         encoded = base64.b64encode(fake_webp).decode()
         data_url = f"data:image/webp;base64,{encoded}"
 
-        result = _save_image(data_url)
+        result = save_image(data_url)
 
         try:
             assert result.suffix == ".webp"
@@ -84,29 +64,7 @@ class TestSaveImage:
             result.unlink(missing_ok=True)
 
 
-def _make_mock_chat_repo():
-    mock_repo = MagicMock()
-    mock_thread = MagicMock()
-    mock_thread.id = "test-thread-id"
-    mock_thread.title = None
-    mock_repo.get_or_create_thread = AsyncMock(return_value=mock_thread)
-    mock_repo.add_message = AsyncMock()
-    mock_repo.update_thread_title = AsyncMock()
-    mock_repo.commit = AsyncMock()
-    return mock_repo
-
-
-class TestStreamEndpoint:
-    def setup_method(self):
-        self._client = TestClient(app)
-
-    def teardown_method(self):
-        app.dependency_overrides.clear()
-
-    def _override(self, mock_claude_code):
-        app.dependency_overrides[get_claude_code_service] = lambda: mock_claude_code
-        app.dependency_overrides[get_chat_repository] = _make_mock_chat_repo
-
+class TestStreamEndpoint(StreamTestBase):
     def test_given_claude_code_raises_when_stream_then_returns_error_event(self):
         mock_cc = MagicMock()
 
@@ -120,7 +78,7 @@ class TestStreamEndpoint:
         response = self._client.post("/api/voice/stream", json={"text": "test"})
 
         assert response.status_code == 200
-        events = _parse_sse_events(response.text)
+        events = parse_sse_events(response.text)
         types = [e["type"] for e in events]
         assert "error" in types
 
@@ -131,7 +89,7 @@ class TestStreamEndpoint:
         response = self._client.post("/api/voice/stream", json={"text": "   "})
 
         assert response.status_code == 200
-        events = _parse_sse_events(response.text)
+        events = parse_sse_events(response.text)
         error_event = next(e for e in events if e["type"] == "error")
         assert "指示が空です" in error_event["text"]
 
@@ -148,7 +106,7 @@ class TestStreamEndpoint:
         response = self._client.post("/api/voice/stream", json={"text": "test"})
 
         assert response.status_code == 200
-        events = _parse_sse_events(response.text)
+        events = parse_sse_events(response.text)
         types = [e["type"] for e in events]
         assert "tool_action" in types
 
@@ -193,6 +151,6 @@ class TestStreamEndpoint:
         )
 
         assert response.status_code == 200
-        events = _parse_sse_events(response.text)
+        events = parse_sse_events(response.text)
         types = [e["type"] for e in events]
         assert "complete" in types
