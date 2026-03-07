@@ -52,6 +52,7 @@ class ClaudeCodeService:
             stderr=asyncio.subprocess.PIPE,
             cwd=str(self._project_root),
             env=env,
+            limit=1024 * 1024,
         )
 
         sent_text_length = 0
@@ -93,11 +94,20 @@ class ClaudeCodeService:
                     inp = block.get("input", {})
                     if name in ("Write", "Edit", "MultiEdit"):
                         path = inp.get("file_path", inp.get("path", ""))
-                        yield {"type": "file_change", "path": path, "action": name.lower()}
+                        yield {"type": "tool_action", "tool": name, "text": f"{name.lower()}: {path}"}
                     elif name == "Bash":
-                        yield {"type": "status", "text": f"$ {inp.get('command', '')}"}
+                        yield {"type": "tool_action", "tool": "Bash", "text": f"$ {inp.get('command', '')}"}
+                    elif name == "Read":
+                        path = inp.get("file_path", "")
+                        yield {"type": "tool_action", "tool": "Read", "text": f"read: {path}"}
+                    elif name == "Glob":
+                        pattern = inp.get("pattern", "")
+                        yield {"type": "tool_action", "tool": "Glob", "text": f"glob: {pattern}"}
+                    elif name == "Grep":
+                        pattern = inp.get("pattern", "")
+                        yield {"type": "tool_action", "tool": "Grep", "text": f"grep: {pattern}"}
                     else:
-                        yield {"type": "status", "text": f"ツール: {name}"}
+                        yield {"type": "tool_action", "tool": name, "text": f"tool: {name}"}
 
             elif event_type == "result":
                 if session_id := event.get("session_id"):

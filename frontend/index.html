@@ -163,6 +163,67 @@
         .message.test-fail { background: #2e1a1a; align-self: center; color: #e88888; font-size: 12px; font-family: monospace; }
         .message.verify-failed { background: #2e1a1a; align-self: center; color: #e8a888; font-size: 12px; font-weight: bold; }
 
+        .action-log {
+            align-self: flex-start;
+            max-width: 85%;
+            width: 100%;
+        }
+
+        .action-log details {
+            background: #141420;
+            border: 1px solid #2a2a3e;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .action-log summary {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 12px;
+            color: #8888c8;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            user-select: none;
+        }
+
+        .action-log summary:hover {
+            background: #1a1a2e;
+        }
+
+        .action-log summary .action-count {
+            background: #2a2a4e;
+            color: #a0a0d8;
+            font-size: 10px;
+            padding: 1px 6px;
+            border-radius: 10px;
+            margin-left: auto;
+        }
+
+        .action-log .action-list {
+            padding: 4px 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .action-log .action-item {
+            padding: 3px 12px 3px 28px;
+            font-size: 11px;
+            font-family: monospace;
+            color: #7a7a9e;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .action-log .action-item.tool-bash { color: #c8a868; }
+        .action-log .action-item.tool-write,
+        .action-log .action-item.tool-edit,
+        .action-log .action-item.tool-multiedit { color: #68c888; }
+        .action-log .action-item.tool-read { color: #88b8e8; }
+        .action-log .action-item.tool-glob,
+        .action-log .action-item.tool-grep { color: #b888d8; }
+
         #controls {
             padding: 16px 20px;
             background: #111;
