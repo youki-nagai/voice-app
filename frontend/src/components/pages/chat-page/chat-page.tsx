@@ -237,14 +237,6 @@ export function ChatPage() {
     [],
   );
 
-  const handleRemoveSession = useCallback(
-    (id: string) => {
-      sessionManager.removeSession(id);
-      chat.removeSessionData(id);
-    },
-    [sessionManager, chat],
-  );
-
   const handleSelectThread = useCallback(
     async (sessionId: string) => {
       const existingSession = sessionManager.sessions.find(
@@ -346,10 +338,6 @@ export function ChatPage() {
     ? buildTimeline(secondaryId, sessionManager.focusedPanel === "secondary")
     : [];
 
-  const waitingSessionIds = sessionManager.sessions
-    .filter((s) => chat.getIsWaitingForAI(s.id))
-    .map((s) => s.id);
-
   return (
     <ChatTemplate
       selectedModel={selectedModel}
@@ -358,21 +346,13 @@ export function ChatPage() {
       appStatusText={appStatusText}
       isCheatSheetOpen={isCheatSheetOpen}
       onCheatSheetToggle={toggleCheatSheet}
-      sessions={sessionManager.sessions}
-      activeSessionId={activeId}
-      secondarySessionId={secondaryId}
-      isSplitView={sessionManager.isSplitView}
       focusedPanel={sessionManager.focusedPanel}
-      onSelectSession={sessionManager.selectSession}
-      onAddSession={sessionManager.addSession}
-      onRemoveSession={handleRemoveSession}
-      onSplitSession={sessionManager.splitSession}
-      onUnsplit={sessionManager.unsplit}
       onFocusPanel={sessionManager.setFocusedPanel}
-      waitingSessionIds={waitingSessionIds}
       isSidebarOpen={isSidebarOpen}
       onSidebarToggle={toggleSidebar}
       onSelectThread={handleSelectThread}
+      onNewChat={sessionManager.addSession}
+      activeSessionId={activeId}
       primary={{
         timeline: primaryTimeline,
         textValue: primaryTextValue,
