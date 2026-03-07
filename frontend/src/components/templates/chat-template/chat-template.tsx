@@ -17,7 +17,8 @@ interface PanelProps {
   onSend: () => void;
   isRecording: boolean;
   onMicToggle: () => void;
-  silenceTimerText: string;
+  silenceState: import("../../../hooks/use-speech-recognition").SilenceState;
+  countdownKey: number;
   isWaitingForAI: boolean;
   pendingImageUrls: string[];
   onImagePaste: (e: React.ClipboardEvent) => void;
@@ -87,7 +88,8 @@ function ChatPanel({
         onSend={panel.onSend}
         isRecording={panel.isRecording}
         onMicToggle={panel.onMicToggle}
-        silenceTimerText={panel.silenceTimerText}
+        silenceState={panel.silenceState}
+        countdownKey={panel.countdownKey}
         isWaitingForAI={panel.isWaitingForAI}
         pendingImageUrls={panel.pendingImageUrls}
         onImagePaste={panel.onImagePaste}
@@ -161,7 +163,8 @@ export function ChatTemplate(props: ChatTemplateProps) {
                 onSend={props.primary.onSend}
                 isRecording={props.primary.isRecording}
                 onMicToggle={props.primary.onMicToggle}
-                silenceTimerText={props.primary.silenceTimerText}
+                silenceState={props.primary.silenceState}
+                countdownKey={props.primary.countdownKey}
                 isWaitingForAI={props.primary.isWaitingForAI}
                 pendingImageUrls={props.primary.pendingImageUrls}
                 onImagePaste={props.primary.onImagePaste}

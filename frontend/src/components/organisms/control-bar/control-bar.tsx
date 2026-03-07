@@ -6,8 +6,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import type { SilenceState } from "../../../hooks/use-speech-recognition";
 import { IconButton } from "../../atoms/icon-button/icon-button";
-import { MicIcon, SendIcon } from "../../atoms/icons";
+import { SendIcon } from "../../atoms/icons";
+import { MicButton } from "../../atoms/mic-button/mic-button";
 import { TextInput } from "../../atoms/text-input/text-input";
 
 interface ControlBarProps {
@@ -16,7 +18,8 @@ interface ControlBarProps {
   onSend: () => void;
   isRecording: boolean;
   onMicToggle: () => void;
-  silenceTimerText: string;
+  silenceState: SilenceState;
+  countdownKey: number;
   isWaitingForAI: boolean;
   pendingImageUrls: string[];
   onImagePaste: (e: React.ClipboardEvent) => void;
@@ -31,7 +34,8 @@ export function ControlBar({
   onSend,
   isRecording,
   onMicToggle,
-  silenceTimerText,
+  silenceState,
+  countdownKey,
   isWaitingForAI,
   pendingImageUrls,
   onImagePaste,
@@ -47,7 +51,7 @@ export function ControlBar({
 
   return (
     <TooltipProvider>
-      <div className="flex items-start gap-4 border-t border-border bg-background px-5 py-4">
+      <div className="flex items-center gap-4 border-t border-border bg-background px-5 py-4">
         <div className="flex flex-1 items-center gap-3 rounded-3xl border border-border bg-card px-4 py-3">
           {pendingImageUrls.map((url, index) => (
             <span key={url.slice(-20)} className="relative mr-2 inline-block">
@@ -83,64 +87,58 @@ export function ControlBar({
           </IconButton>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="flex flex-col items-center gap-0.5">
-            <span className="min-w-[60px] text-center text-[11px] text-muted-foreground">
-              {silenceTimerText}
+        <div className="flex flex-col items-center gap-0.5">
+          <MicButton
+            isRecording={isRecording}
+            silenceState={silenceState}
+            countdownKey={countdownKey}
+            silenceDelayMs={silenceDelaySeconds * 1000}
+            onClick={onMicToggle}
+          />
+          <div className="flex items-center gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-5 w-5"
+                  onClick={() =>
+                    onSilenceDelayChange(
+                      Math.max(0.5, silenceDelaySeconds - 0.5),
+                    )
+                  }
+                  disabled={silenceDelaySeconds <= 0.5}
+                >
+                  <Minus className="h-3 w-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>沈黙時間を減らす</p>
+              </TooltipContent>
+            </Tooltip>
+            <span className="min-w-[40px] text-center text-[10px] text-muted-foreground">
+              {silenceDelaySeconds}秒
             </span>
-            <IconButton
-              variant="mic"
-              title="音声入力"
-              active={isRecording}
-              onClick={onMicToggle}
-            >
-              <MicIcon className="h-5 w-5" />
-            </IconButton>
-            <div className="flex items-center gap-1">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-5 w-5"
-                    onClick={() =>
-                      onSilenceDelayChange(
-                        Math.max(0.5, silenceDelaySeconds - 0.5),
-                      )
-                    }
-                    disabled={silenceDelaySeconds <= 0.5}
-                  >
-                    <Minus className="h-3 w-3" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>沈黙時間を減らす</p>
-                </TooltipContent>
-              </Tooltip>
-              <span className="min-w-[40px] text-center text-[10px] text-muted-foreground">
-                {silenceDelaySeconds}秒で送信
-              </span>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-5 w-5"
-                    onClick={() =>
-                      onSilenceDelayChange(
-                        Math.min(10, silenceDelaySeconds + 0.5),
-                      )
-                    }
-                    disabled={silenceDelaySeconds >= 10}
-                  >
-                    <Plus className="h-3 w-3" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>沈黙時間を増やす</p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-5 w-5"
+                  onClick={() =>
+                    onSilenceDelayChange(
+                      Math.min(10, silenceDelaySeconds + 0.5),
+                    )
+                  }
+                  disabled={silenceDelaySeconds >= 10}
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>沈黙時間を増やす</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </div>

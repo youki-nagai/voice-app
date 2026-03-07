@@ -10,7 +10,8 @@ describe("control-bar", () => {
     onSend: vi.fn(),
     isRecording: false,
     onMicToggle: vi.fn(),
-    silenceTimerText: "",
+    silenceState: "idle" as const,
+    countdownKey: 0,
     isWaitingForAI: false,
     pendingImageUrls: [] as string[],
     onImagePaste: vi.fn(),
@@ -52,14 +53,24 @@ describe("control-bar", () => {
     expect(onMicToggle).toHaveBeenCalledOnce();
   });
 
-  it("applies active styling when recording", () => {
-    render(<ControlBar {...defaultProps} isRecording={true} />);
-    expect(screen.getByTitle("音声入力").className).toContain("border-red-500");
+  it("shows countdown ring when in countdown state", () => {
+    const { container } = render(
+      <ControlBar
+        {...defaultProps}
+        isRecording={true}
+        silenceState="countdown"
+      />,
+    );
+    const circles = container.querySelectorAll("circle");
+    expect(circles.length).toBeGreaterThanOrEqual(2);
   });
 
-  it("shows silence timer text", () => {
-    render(<ControlBar {...defaultProps} silenceTimerText="話し中..." />);
-    expect(screen.getByText("話し中...")).toBeInTheDocument();
+  it("shows check icon when sent", () => {
+    const { container } = render(
+      <ControlBar {...defaultProps} isRecording={true} silenceState="sent" />,
+    );
+    const svg = container.querySelector(".lucide-check");
+    expect(svg).toBeInTheDocument();
   });
 
   it("shows image preview when pendingImageUrls has items", () => {
@@ -96,7 +107,6 @@ describe("control-bar", () => {
         onImageRemove={onImageRemove}
       />,
     );
-    // The destructive button doesn't have title anymore, find by aria or text
     const removeButton = screen
       .getByAltText("添付画像1")
       .closest("span")

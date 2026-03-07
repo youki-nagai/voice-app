@@ -364,10 +364,11 @@ export function ChatPage() {
         isRecording:
           speech.isRecording && sessionManager.focusedPanel === "primary",
         onMicToggle: handleMicToggle,
-        silenceTimerText:
+        silenceState:
           sessionManager.focusedPanel === "primary"
-            ? speech.silenceTimerText
-            : "",
+            ? speech.silenceState
+            : "idle",
+        countdownKey: speech.countdownKey,
         isWaitingForAI: chat.getIsWaitingForAI(activeId),
         pendingImageUrls: primaryPendingImages,
         onImagePaste: (e) => handleImagePaste(e, setPrimaryPendingImages),
@@ -387,10 +388,11 @@ export function ChatPage() {
                 speech.isRecording &&
                 sessionManager.focusedPanel === "secondary",
               onMicToggle: handleMicToggle,
-              silenceTimerText:
+              silenceState:
                 sessionManager.focusedPanel === "secondary"
-                  ? speech.silenceTimerText
-                  : "",
+                  ? speech.silenceState
+                  : "idle",
+              countdownKey: speech.countdownKey,
               isWaitingForAI: chat.getIsWaitingForAI(secondaryId),
               pendingImageUrls: secondaryPendingImages,
               onImagePaste: (e) =>
