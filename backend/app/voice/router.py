@@ -15,6 +15,7 @@ router = APIRouter()
 
 class StreamRequest(BaseModel):
     text: str
+    model: str = "claude-opus-4-6"
 
 
 def _sse(data: dict) -> dict:
@@ -25,6 +26,7 @@ async def _generate_events(
     instruction: str,
     claude_code: ClaudeCodeService,
     git_service: GitService,
+    model: str = "claude-opus-4-6",
 ) -> AsyncGenerator[dict]:
     if not instruction.strip():
         yield _sse({"type": "error", "text": "指示が空です"})
@@ -32,7 +34,7 @@ async def _generate_events(
 
     yield _sse({"type": "status", "text": "Claude Code 実行中..."})
 
-    async for event in claude_code.execute(instruction):
+    async for event in claude_code.execute(instruction, model=model):
         yield _sse(event)
 
     commit_message = git_service.auto_commit(instruction)
@@ -50,7 +52,7 @@ async def stream(
 ):
     async def event_generator() -> AsyncGenerator[dict]:
         try:
-            async for event in _generate_events(req.text, claude_code, git_service):
+            async for event in _generate_events(req.text, claude_code, git_service, model=req.model):
                 yield event
         except Exception as e:
             yield _sse({"type": "error", "text": f"エラー: {e}\n{traceback.format_exc()}"})

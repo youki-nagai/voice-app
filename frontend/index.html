@@ -41,6 +41,35 @@
             gap: 16px;
         }
 
+        .model-switch {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .model-switch button {
+            background: none;
+            border: none;
+            color: #666;
+            font-size: 12px;
+            padding: 4px 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .model-switch button:hover {
+            color: #aaa;
+        }
+
+        .model-switch button.active {
+            background: #1a3a5c;
+            color: #c8e0f8;
+        }
+
         .git-status {
             display: flex;
             align-items: center;
@@ -229,6 +258,10 @@
     <header>
         <h1>voice-app</h1>
         <div class="header-right">
+            <div class="model-switch" id="model-switch">
+                <button data-model="claude-opus-4-6" class="active">Opus</button>
+                <button data-model="claude-sonnet-4-6">Sonnet</button>
+            </div>
             <div class="git-status" id="git-status" title="クリックでGit状態を再チェック">
                 <div class="git-dot" id="git-dot"></div>
                 <span id="git-text">Git: 確認中</span>
@@ -290,6 +323,7 @@
         let isWaitingForAI = false;
         let currentAiElement = null;
         const SILENCE_DELAY = 1000;
+        let selectedModel = 'claude-opus-4-6';
 
         function initializeApp() {
             statusDot.className = 'status-dot connected';
@@ -685,7 +719,7 @@
                     'Content-Type': 'application/json',
                     'Accept': 'text/event-stream'
                 },
-                body: JSON.stringify({ text: text })
+                body: JSON.stringify({ text: text, model: selectedModel })
             }).then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}`);
@@ -899,6 +933,14 @@
 
         gitStatusEl.addEventListener('click', () => {
             checkGitStatus(true);
+        });
+
+        document.getElementById('model-switch').addEventListener('click', (e) => {
+            const button = e.target.closest('button[data-model]');
+            if (!button) return;
+            selectedModel = button.dataset.model;
+            document.querySelectorAll('#model-switch button').forEach(b => b.classList.remove('active'));
+            button.classList.add('active');
         });
 
         // 初期化
