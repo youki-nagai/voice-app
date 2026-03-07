@@ -699,6 +699,13 @@
                 addMessage(text, 'user');
             }
 
+            // モデル切替コマンドの検出
+            const modelCmd = detectModelCommand(text);
+            if (modelCmd) {
+                switchModel(modelCmd);
+                return;
+            }
+
             // gitコマンドの場合はAPIを直接呼ぶ
             const gitAction = detectGitCommand(text);
             if (gitAction) {
