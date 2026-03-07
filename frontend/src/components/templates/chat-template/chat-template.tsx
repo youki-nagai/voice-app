@@ -23,6 +23,19 @@ interface PanelProps {
   onSilenceDelayChange: (seconds: number) => void;
 }
 
+interface SessionTabsConfig {
+  sessions: Session[];
+  activeSessionId: string;
+  secondarySessionId: string | null;
+  isSplitView: boolean;
+  onSelectSession: (id: string, panel?: FocusedPanel) => void;
+  onAddSession: () => string;
+  onRemoveSession: (id: string) => void;
+  onSplitSession: (id: string) => void;
+  onUnsplit: () => void;
+  waitingSessionIds: string[];
+}
+
 interface ChatTemplateProps {
   // Header
   selectedModel: ModelId;
@@ -38,7 +51,7 @@ interface ChatTemplateProps {
   secondarySessionId: string | null;
   isSplitView: boolean;
   focusedPanel: FocusedPanel;
-  onSelectSession: (id: string) => void;
+  onSelectSession: (id: string, panel?: FocusedPanel) => void;
   onAddSession: () => string;
   onRemoveSession: (id: string) => void;
   onSplitSession: (id: string) => void;
@@ -53,14 +66,16 @@ interface ChatTemplateProps {
 
 function ChatPanel({
   panel,
-  label,
   isFocused,
   onFocus,
+  tabsConfig,
+  forPanel,
 }: {
   panel: PanelProps;
-  label?: string;
   isFocused: boolean;
   onFocus: () => void;
+  tabsConfig?: SessionTabsConfig;
+  forPanel?: FocusedPanel;
 }) {
   return (
     <div
@@ -72,10 +87,20 @@ function ChatPanel({
         if (e.key === "Enter") onFocus();
       }}
     >
-      {label && (
-        <div className="flex items-center gap-1.5 border-b border-border px-3 py-1 text-[10px] text-muted-foreground">
-          <span>{label}</span>
-        </div>
+      {tabsConfig && forPanel && (
+        <SessionTabs
+          sessions={tabsConfig.sessions}
+          activeSessionId={tabsConfig.activeSessionId}
+          secondarySessionId={tabsConfig.secondarySessionId}
+          isSplitView={tabsConfig.isSplitView}
+          onSelectSession={tabsConfig.onSelectSession}
+          onAddSession={tabsConfig.onAddSession}
+          onRemoveSession={tabsConfig.onRemoveSession}
+          onSplitSession={tabsConfig.onSplitSession}
+          onUnsplit={tabsConfig.onUnsplit}
+          waitingSessionIds={tabsConfig.waitingSessionIds}
+          forPanel={forPanel}
+        />
       )}
       <ChatArea timeline={panel.timeline} />
       <ControlBar
@@ -97,6 +122,19 @@ function ChatPanel({
 }
 
 export function ChatTemplate(props: ChatTemplateProps) {
+  const tabsConfig: SessionTabsConfig = {
+    sessions: props.sessions,
+    activeSessionId: props.activeSessionId,
+    secondarySessionId: props.secondarySessionId,
+    isSplitView: props.isSplitView,
+    onSelectSession: props.onSelectSession,
+    onAddSession: props.onAddSession,
+    onRemoveSession: props.onRemoveSession,
+    onSplitSession: props.onSplitSession,
+    onUnsplit: props.onUnsplit,
+    waitingSessionIds: props.waitingSessionIds,
+  };
+
   return (
     <>
       <Header
@@ -106,30 +144,36 @@ export function ChatTemplate(props: ChatTemplateProps) {
         appStatusText={props.appStatusText}
         onHelpToggle={props.onCheatSheetToggle}
       />
-      <SessionTabs
-        sessions={props.sessions}
-        activeSessionId={props.activeSessionId}
-        secondarySessionId={props.secondarySessionId}
-        isSplitView={props.isSplitView}
-        onSelectSession={props.onSelectSession}
-        onAddSession={props.onAddSession}
-        onRemoveSession={props.onRemoveSession}
-        onSplitSession={props.onSplitSession}
-        onUnsplit={props.onUnsplit}
-        waitingSessionIds={props.waitingSessionIds}
-      />
+      {!props.isSplitView && (
+        <SessionTabs
+          sessions={props.sessions}
+          activeSessionId={props.activeSessionId}
+          secondarySessionId={props.secondarySessionId}
+          isSplitView={props.isSplitView}
+          onSelectSession={props.onSelectSession}
+          onAddSession={props.onAddSession}
+          onRemoveSession={props.onRemoveSession}
+          onSplitSession={props.onSplitSession}
+          onUnsplit={props.onUnsplit}
+          waitingSessionIds={props.waitingSessionIds}
+        />
+      )}
       {props.isSplitView && props.secondary ? (
         <div className="flex flex-1 min-h-0">
           <ChatPanel
             panel={props.primary}
             isFocused={props.focusedPanel === "primary"}
             onFocus={() => props.onFocusPanel("primary")}
+            tabsConfig={tabsConfig}
+            forPanel="primary"
           />
           <div className="w-px bg-border" />
           <ChatPanel
             panel={props.secondary}
             isFocused={props.focusedPanel === "secondary"}
             onFocus={() => props.onFocusPanel("secondary")}
+            tabsConfig={tabsConfig}
+            forPanel="secondary"
           />
         </div>
       ) : (
