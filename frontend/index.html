@@ -1013,7 +1013,7 @@
                     'Content-Type': 'application/json',
                     'Accept': 'text/event-stream'
                 },
-                body: JSON.stringify({ text: text, model: selectedModel })
+                body: JSON.stringify({ text: text, model: selectedModel, image: pendingImageDataUrl })
             }).then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}`);
