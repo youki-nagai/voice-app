@@ -19,10 +19,8 @@
 **コードを修正したら `make deploy` を実行しろ。例外なし。**
 
 ```bash
-make deploy BRANCH=<branch-name> MSG="<commit-message>" WORKTREE=<worktree-name>
+make deploy BRANCH=<branch-name> MSG="<commit-message>"
 ```
-
-- `WORKTREE` はオプション。指定すると、デプロイ完了後にそのワークツリーとブランチを自動削除する
 
 これ1コマンドで以下が全自動実行される:
 1. ユニットテスト
@@ -32,7 +30,8 @@ make deploy BRANCH=<branch-name> MSG="<commit-message>" WORKTREE=<worktree-name>
 5. developに戻る
 6. サーバー再起動
 7. E2Eテスト
-8. ワークツリー削除（WORKTREE指定時のみ）
+
+ワークツリーの削除はセッション終了時に Claude Code が自動で行う。
 
 途中で失敗したらスクリプトが即座に停止する（`set -euo pipefail`）。
 失敗原因を修正してから再度 `make deploy` を実行しろ。
