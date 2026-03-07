@@ -35,14 +35,14 @@ export function ControlBar({
   };
 
   return (
-    <div className="flex items-center gap-4 border-t border-border bg-zinc-950 px-5 py-4">
-      <div className="flex flex-1 items-center gap-3 rounded-3xl border border-zinc-700 bg-zinc-900 px-4 py-2">
+    <div className="flex items-center gap-4 border-t border-border bg-background px-5 py-4">
+      <div className="flex flex-1 items-center gap-3 rounded-3xl border border-border bg-card px-4 py-2">
         {pendingImageUrl && (
           <span className="relative mr-2 inline-block">
             <img
               src={pendingImageUrl}
               alt="添付画像"
-              className="max-h-9 rounded-md border border-zinc-600 align-middle"
+              className="max-h-9 rounded-md border border-border align-middle"
             />
             <button
               type="button"
@@ -73,7 +73,7 @@ export function ControlBar({
 
       <div className="flex items-center gap-2">
         <div className="flex flex-col items-center gap-0.5">
-          <span className="min-w-[60px] text-center text-[11px] text-zinc-600">
+          <span className="min-w-[60px] text-center text-[11px] text-muted-foreground">
             {silenceTimerText}
           </span>
           <IconButton
@@ -84,7 +84,7 @@ export function ControlBar({
           >
             <MicIcon className="h-5 w-5" />
           </IconButton>
-          <span className="text-center text-[10px] text-zinc-500">
+          <span className="text-center text-[10px] text-muted-foreground">
             1秒の沈黙で送信
           </span>
         </div>
