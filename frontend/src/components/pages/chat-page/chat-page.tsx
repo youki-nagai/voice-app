@@ -25,8 +25,14 @@ function computeAppStatus(
 export function ChatPage() {
   const [selectedModel, setSelectedModel] =
     useState<ModelId>("claude-opus-4-6");
-  const [textValue, setTextValue] = useState("");
-  const [pendingImageUrls, setPendingImageUrls] = useState<string[]>([]);
+  const [primaryTextValue, setPrimaryTextValue] = useState("");
+  const [secondaryTextValue, setSecondaryTextValue] = useState("");
+  const [primaryPendingImages, setPrimaryPendingImages] = useState<string[]>(
+    [],
+  );
+  const [secondaryPendingImages, setSecondaryPendingImages] = useState<
+    string[]
+  >([]);
   const [interimText, setInterimText] = useState<string | null>(null);
   const [isCheatSheetOpen, setIsCheatSheetOpen] = useState(false);
 
@@ -38,18 +44,21 @@ export function ChatPage() {
 
   const sessionManager = useSessionManager();
   const chat = useMultiChat();
-  const activeIdRef = useRef(sessionManager.activeSessionId);
-  activeIdRef.current = sessionManager.activeSessionId;
+  const focusedIdRef = useRef(sessionManager.focusedSessionId);
+  focusedIdRef.current = sessionManager.focusedSessionId;
 
-  const getActiveSessionId = useCallback(() => activeIdRef.current, []);
+  const getFocusedSessionId = useCallback(() => focusedIdRef.current, []);
 
-  const stream = useChatStream({ chat, getActiveSessionId });
+  const stream = useChatStream({
+    chat,
+    getActiveSessionId: getFocusedSessionId,
+  });
 
   const switchModel = useCallback(
     (model: ModelId) => {
       setSelectedModel(model);
       chat.addMessage(
-        activeIdRef.current,
+        focusedIdRef.current,
         `モデル切替: ${getModelLabel(model)}`,
         "system",
       );
@@ -68,7 +77,7 @@ export function ChatPage() {
       const appCmd = detectAppCommand(text);
       if (!appCmd) return false;
 
-      const sid = activeIdRef.current;
+      const sid = focusedIdRef.current;
       switch (appCmd.type) {
         case "new-session": {
           const newId = sessionManager.addSession();
@@ -97,11 +106,21 @@ export function ChatPage() {
 
   const sendMessage = useCallback(
     (text: string, skipUserDisplay = false) => {
-      const sid = activeIdRef.current;
+      const sid = focusedIdRef.current;
       if (!text.trim() || chat.getIsWaitingForAI(sid)) return;
 
-      const imagesToSend = [...pendingImageUrls];
-      setPendingImageUrls([]);
+      const isFocusedOnSecondary =
+        sessionManager.focusedPanel === "secondary" &&
+        sessionManager.secondarySessionId !== null;
+      const pendingImages = isFocusedOnSecondary
+        ? secondaryPendingImages
+        : primaryPendingImages;
+      const setPendingImages = isFocusedOnSecondary
+        ? setSecondaryPendingImages
+        : setPrimaryPendingImages;
+
+      const imagesToSend = [...pendingImages];
+      setPendingImages([]);
 
       if (!skipUserDisplay) {
         chat.addMessage(sid, text, "user", imagesToSend[0]);
@@ -111,13 +130,22 @@ export function ChatPage() {
 
       stream.send(text, selectedModel, imagesToSend, sid);
     },
-    [chat, selectedModel, pendingImageUrls, stream, handleAppCommand],
+    [
+      chat,
+      selectedModel,
+      primaryPendingImages,
+      secondaryPendingImages,
+      sessionManager.focusedPanel,
+      sessionManager.secondarySessionId,
+      stream,
+      handleAppCommand,
+    ],
   );
 
   const handleSpeechComplete = useCallback(
     (transcript: string) => {
       setInterimText(null);
-      chat.addMessage(activeIdRef.current, transcript, "user");
+      chat.addMessage(focusedIdRef.current, transcript, "user");
       sendMessage(transcript, true);
     },
     [chat, sendMessage],
@@ -126,37 +154,52 @@ export function ChatPage() {
   const speech = useSpeechRecognition({
     onSpeechComplete: handleSpeechComplete,
     onInterimUpdate: (text) => setInterimText(text),
-    onError: (error) => chat.addMessage(activeIdRef.current, error, "error"),
+    onError: (error) =>
+      chat.addMessage(focusedIdRef.current, error, "error"),
   });
 
   const handleMicToggle = useCallback(() => {
     speech.setRecordingEnabled(!speech.isRecording);
   }, [speech]);
 
-  const handleSend = useCallback(() => {
-    if (textValue.trim()) {
-      sendMessage(textValue);
-      setTextValue("");
+  const handlePrimarySend = useCallback(() => {
+    if (primaryTextValue.trim()) {
+      sessionManager.setFocusedPanel("primary");
+      focusedIdRef.current = sessionManager.activeSessionId;
+      sendMessage(primaryTextValue);
+      setPrimaryTextValue("");
     }
-  }, [textValue, sendMessage]);
+  }, [primaryTextValue, sendMessage, sessionManager]);
 
-  const handleImagePaste = useCallback((e: React.ClipboardEvent) => {
-    const items = e.clipboardData?.items;
-    if (!items) return;
-    for (const item of Array.from(items)) {
-      if (item.type.startsWith("image/")) {
-        e.preventDefault();
-        const file = item.getAsFile();
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = () => {
-          setPendingImageUrls((prev) => [...prev, reader.result as string]);
-        };
-        reader.readAsDataURL(file);
-        return;
-      }
+  const handleSecondarySend = useCallback(() => {
+    if (secondaryTextValue.trim() && sessionManager.secondarySessionId) {
+      sessionManager.setFocusedPanel("secondary");
+      focusedIdRef.current = sessionManager.secondarySessionId;
+      sendMessage(secondaryTextValue);
+      setSecondaryTextValue("");
     }
-  }, []);
+  }, [secondaryTextValue, sendMessage, sessionManager]);
+
+  const handleImagePaste = useCallback(
+    (e: React.ClipboardEvent, setPendingImages: React.Dispatch<React.SetStateAction<string[]>>) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith("image/")) {
+          e.preventDefault();
+          const file = item.getAsFile();
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = () => {
+            setPendingImages((prev) => [...prev, reader.result as string]);
+          };
+          reader.readAsDataURL(file);
+          return;
+        }
+      }
+    },
+    [],
+  );
 
   const handleRemoveSession = useCallback(
     (id: string) => {
@@ -173,19 +216,33 @@ export function ChatPage() {
   }, []);
 
   const activeId = sessionManager.activeSessionId;
-  const isWaitingForAI = chat.getIsWaitingForAI(activeId);
+  const secondaryId = sessionManager.secondarySessionId;
+  const focusedId = sessionManager.focusedSessionId;
+  const isWaitingForAI = chat.getIsWaitingForAI(focusedId);
   const { status: appStatus, text: appStatusText } = computeAppStatus(
     isWaitingForAI,
     speech.isRecording,
   );
 
-  const displayTimeline: TimelineItem[] = [...chat.getTimeline(activeId)];
-  if (interimText) {
-    displayTimeline.push({
-      kind: "message",
-      data: { id: "interim", type: "interim", text: interimText },
-    });
-  }
+  const buildTimeline = (sessionId: string, showInterim: boolean): TimelineItem[] => {
+    const timeline: TimelineItem[] = [...chat.getTimeline(sessionId)];
+    if (showInterim && interimText) {
+      timeline.push({
+        kind: "message",
+        data: { id: "interim", type: "interim", text: interimText },
+      });
+    }
+    return timeline;
+  };
+
+  const primaryTimeline = buildTimeline(
+    activeId,
+    sessionManager.focusedPanel === "primary" || !sessionManager.isSplitView,
+  );
+
+  const secondaryTimeline = secondaryId
+    ? buildTimeline(secondaryId, sessionManager.focusedPanel === "secondary")
+    : [];
 
   const waitingSessionIds = sessionManager.sessions
     .filter((s) => chat.getIsWaitingForAI(s.id))
@@ -199,25 +256,58 @@ export function ChatPage() {
       appStatusText={appStatusText}
       isCheatSheetOpen={isCheatSheetOpen}
       onCheatSheetToggle={toggleCheatSheet}
-      timeline={displayTimeline}
-      textValue={textValue}
-      onTextChange={setTextValue}
-      onSend={handleSend}
-      isRecording={speech.isRecording}
-      onMicToggle={handleMicToggle}
-      silenceTimerText={speech.silenceTimerText}
-      isWaitingForAI={isWaitingForAI}
-      pendingImageUrls={pendingImageUrls}
-      onImagePaste={handleImagePaste}
-      onImageRemove={(index) =>
-        setPendingImageUrls((prev) => prev.filter((_, i) => i !== index))
-      }
       sessions={sessionManager.sessions}
       activeSessionId={activeId}
-      onSelectSession={sessionManager.setActiveSession}
+      secondarySessionId={secondaryId}
+      isSplitView={sessionManager.isSplitView}
+      focusedPanel={sessionManager.focusedPanel}
+      onSelectSession={sessionManager.selectSession}
       onAddSession={sessionManager.addSession}
       onRemoveSession={handleRemoveSession}
+      onSplitSession={sessionManager.splitSession}
+      onUnsplit={sessionManager.unsplit}
+      onFocusPanel={sessionManager.setFocusedPanel}
       waitingSessionIds={waitingSessionIds}
+      primary={{
+        timeline: primaryTimeline,
+        textValue: primaryTextValue,
+        onTextChange: setPrimaryTextValue,
+        onSend: handlePrimarySend,
+        isRecording: speech.isRecording && sessionManager.focusedPanel === "primary",
+        onMicToggle: handleMicToggle,
+        silenceTimerText: sessionManager.focusedPanel === "primary" ? speech.silenceTimerText : "",
+        isWaitingForAI: chat.getIsWaitingForAI(activeId),
+        pendingImageUrls: primaryPendingImages,
+        onImagePaste: (e) => handleImagePaste(e, setPrimaryPendingImages),
+        onImageRemove: (index) =>
+          setPrimaryPendingImages((prev) => prev.filter((_, i) => i !== index)),
+      }}
+      secondary={
+        secondaryId
+          ? {
+              timeline: secondaryTimeline,
+              textValue: secondaryTextValue,
+              onTextChange: setSecondaryTextValue,
+              onSend: handleSecondarySend,
+              isRecording:
+                speech.isRecording &&
+                sessionManager.focusedPanel === "secondary",
+              onMicToggle: handleMicToggle,
+              silenceTimerText:
+                sessionManager.focusedPanel === "secondary"
+                  ? speech.silenceTimerText
+                  : "",
+              isWaitingForAI: chat.getIsWaitingForAI(secondaryId),
+              pendingImageUrls: secondaryPendingImages,
+              onImagePaste: (e) =>
+                handleImagePaste(e, setSecondaryPendingImages),
+              onImageRemove: (index) =>
+                setSecondaryPendingImages((prev) =>
+                  prev.filter((_, i) => i !== index),
+                ),
+            }
+          : null
+      }
     />
   );
 }
