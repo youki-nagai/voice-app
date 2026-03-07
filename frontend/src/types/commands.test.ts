@@ -5,11 +5,13 @@ describe("detectModelCommand", () => {
   it("detects opus command", () => {
     expect(detectModelCommand("opusに切り替えて")).toBe("claude-opus-4-6");
     expect(detectModelCommand("オーパスにして")).toBe("claude-opus-4-6");
+    expect(detectModelCommand("オパスにして")).toBe("claude-opus-4-6");
   });
 
   it("detects sonnet command", () => {
     expect(detectModelCommand("sonnetに切り替えて")).toBe("claude-sonnet-4-6");
     expect(detectModelCommand("ソネットにして")).toBe("claude-sonnet-4-6");
+    expect(detectModelCommand("そねにして")).toBe("claude-sonnet-4-6");
   });
 
   it("returns null for unrelated text", () => {
@@ -39,6 +41,24 @@ describe("detectAppCommand", () => {
 
     it("detects 'チャットを追加'", () => {
       expect(detectAppCommand("チャットを追加")).toEqual({
+        type: "new-session",
+      });
+    });
+
+    it("detects 'チャット作って'", () => {
+      expect(detectAppCommand("チャット作って")).toEqual({
+        type: "new-session",
+      });
+    });
+
+    it("detects 'チャットを開いて'", () => {
+      expect(detectAppCommand("チャットを開いて")).toEqual({
+        type: "new-session",
+      });
+    });
+
+    it("detects '新しいセッション'", () => {
+      expect(detectAppCommand("新しいセッションを作って")).toEqual({
         type: "new-session",
       });
     });
@@ -79,6 +99,20 @@ describe("detectAppCommand", () => {
         target: "prev",
       });
     });
+
+    it("detects 'チャットを次'", () => {
+      expect(detectAppCommand("チャットを次に")).toEqual({
+        type: "switch-session",
+        target: "next",
+      });
+    });
+
+    it("detects 'チャットを前'", () => {
+      expect(detectAppCommand("チャットを前に")).toEqual({
+        type: "switch-session",
+        target: "prev",
+      });
+    });
   });
 
   describe("toggle-cheat-sheet", () => {
@@ -104,6 +138,36 @@ describe("detectAppCommand", () => {
       expect(detectAppCommand("チートシート閉じて")).toEqual({
         type: "toggle-cheat-sheet",
       });
+    });
+
+    it("detects '操作方法'", () => {
+      expect(detectAppCommand("操作方法を教えて")).toEqual({
+        type: "toggle-cheat-sheet",
+      });
+    });
+
+    it("detects 'ショートカット'", () => {
+      expect(detectAppCommand("ショートカット表示")).toEqual({
+        type: "toggle-cheat-sheet",
+      });
+    });
+  });
+
+  describe("unsplit", () => {
+    it("detects '分割やめて'", () => {
+      expect(detectAppCommand("分割やめて")).toEqual({ type: "unsplit" });
+    });
+
+    it("detects '1つに戻して'", () => {
+      expect(detectAppCommand("1つに戻して")).toEqual({ type: "unsplit" });
+    });
+
+    it("detects 'ひとつに戻して'", () => {
+      expect(detectAppCommand("ひとつに戻して")).toEqual({ type: "unsplit" });
+    });
+
+    it("detects '一つに戻して'", () => {
+      expect(detectAppCommand("一つに戻して")).toEqual({ type: "unsplit" });
     });
   });
 

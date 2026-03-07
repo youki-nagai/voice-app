@@ -8,8 +8,16 @@ export function detectModelCommand(text: string): ModelId | null {
     "おーぱすに",
     "オプスに",
     "おぷすに",
+    "オパスに",
+    "おぱすに",
   ];
-  const sonnetPatterns = ["sonnetに", "ソネットに", "そねっとに", "ソネに"];
+  const sonnetPatterns = [
+    "sonnetに",
+    "ソネットに",
+    "そねっとに",
+    "ソネに",
+    "そねに",
+  ];
   for (const p of opusPatterns) {
     if (n.includes(p)) return "claude-opus-4-6";
   }
@@ -51,7 +59,12 @@ export function detectAppCommand(text: string): AppCommand | null {
     n.includes("新しいチャット") ||
     n.includes("新規チャット") ||
     n.includes("チャット追加") ||
-    n.includes("チャットを追加")
+    n.includes("チャットを追加") ||
+    n.includes("チャット作") ||
+    n.includes("チャットを作") ||
+    n.includes("チャット開") ||
+    n.includes("チャットを開") ||
+    n.includes("新しいセッション")
   ) {
     return { type: "new-session" };
   }
@@ -63,10 +76,10 @@ export function detectAppCommand(text: string): AppCommand | null {
   }
 
   // Switch session: next/prev
-  if (n.includes("次のチャット")) {
+  if (n.includes("次のチャット") || n.includes("チャットを次")) {
     return { type: "switch-session", target: "next" };
   }
-  if (n.includes("前のチャット")) {
+  if (n.includes("前のチャット") || n.includes("チャットを前")) {
     return { type: "switch-session", target: "prev" };
   }
 
@@ -86,7 +99,11 @@ export function detectAppCommand(text: string): AppCommand | null {
     n.includes("パネル閉じ") ||
     n.includes("分割閉じ") ||
     n.includes("ペインとじ") ||
-    n.includes("パネルとじ")
+    n.includes("パネルとじ") ||
+    n.includes("分割やめ") ||
+    n.includes("1つに戻") ||
+    n.includes("ひとつに戻") ||
+    n.includes("一つに戻")
   ) {
     return { type: "unsplit" };
   }
@@ -95,7 +112,9 @@ export function detectAppCommand(text: string): AppCommand | null {
   if (
     n.includes("使い方") ||
     n.includes("ヘルプ") ||
-    n.includes("チートシート")
+    n.includes("チートシート") ||
+    n.includes("操作方法") ||
+    n.includes("ショートカット")
   ) {
     return { type: "toggle-cheat-sheet" };
   }
