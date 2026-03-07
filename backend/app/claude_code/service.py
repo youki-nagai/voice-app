@@ -26,12 +26,14 @@ class ClaudeCodeService:
             return str(local_bin)
         raise RuntimeError("claude コマンドが見つかりません。Claude Code CLIをインストールしてください。")
 
-    async def execute(self, prompt: str) -> AsyncGenerator[dict]:
+    async def execute(self, prompt: str, model: str = "claude-opus-4-6") -> AsyncGenerator[dict]:
         claude_bin = self._find_claude_binary()
         cmd = [
             claude_bin,
             "-p",
             prompt,
+            "--model",
+            model,
             "--output-format",
             "stream-json",
             "--verbose",
