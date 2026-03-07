@@ -75,9 +75,9 @@ export function useSpeechRecognition({ onSpeechComplete, onInterimUpdate, onErro
     };
 
     recognition.onend = () => {
-      if (isRecordingRef.current) {
+      if (isRecordingRef.current && !document.hidden) {
         setTimeout(() => {
-          if (isRecordingRef.current) {
+          if (isRecordingRef.current && !document.hidden) {
             try { recognition.start(); } catch {}
           }
         }, 300);
@@ -124,7 +124,28 @@ export function useSpeechRecognition({ onSpeechComplete, onInterimUpdate, onErro
   }, []);
 
   useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!isRecordingRef.current) return;
+
+      if (document.hidden) {
+        if (recognitionRef.current) {
+          recognitionRef.current.stop();
+        }
+        if (silenceTimeoutRef.current) {
+          clearTimeout(silenceTimeoutRef.current);
+          silenceTimeoutRef.current = null;
+        }
+      } else {
+        if (recognitionRef.current) {
+          try { recognitionRef.current.start(); } catch {}
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (silenceTimeoutRef.current) {
         clearTimeout(silenceTimeoutRef.current);
       }

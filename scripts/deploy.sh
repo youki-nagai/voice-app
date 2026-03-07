@@ -53,7 +53,9 @@ cd ..
 echo ""
 
 echo "=== Step 4: Branch → Commit → Push ==="
+git fetch origin develop
 git checkout -b "$BRANCH"
+git merge origin/develop --no-edit
 git add -A
 git commit -m "$MESSAGE
 
