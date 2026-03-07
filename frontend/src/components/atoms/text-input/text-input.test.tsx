@@ -19,19 +19,19 @@ describe("text-input", () => {
     expect(onChange).toHaveBeenCalled();
   });
 
-  it("calls onSubmit on Enter key", async () => {
+  it("calls onSubmit on Command+Enter", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(<TextInput value="hello" onChange={() => {}} onSubmit={onSubmit} />);
+    await user.type(screen.getByRole("textbox"), "{Meta>}{Enter}{/Meta}");
+    expect(onSubmit).toHaveBeenCalledOnce();
+  });
+
+  it("does not call onSubmit on Enter without Command", async () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn();
     render(<TextInput value="hello" onChange={() => {}} onSubmit={onSubmit} />);
     await user.type(screen.getByRole("textbox"), "{Enter}");
-    expect(onSubmit).toHaveBeenCalledOnce();
-  });
-
-  it("does not call onSubmit on Shift+Enter", async () => {
-    const user = userEvent.setup();
-    const onSubmit = vi.fn();
-    render(<TextInput value="hello" onChange={() => {}} onSubmit={onSubmit} />);
-    await user.type(screen.getByRole("textbox"), "{Shift>}{Enter}{/Shift}");
     expect(onSubmit).not.toHaveBeenCalled();
   });
 });
