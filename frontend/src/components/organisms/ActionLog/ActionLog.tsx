@@ -14,10 +14,10 @@ export function ActionLog({ actions, status }: ActionLogProps) {
 
   return (
     <div className="action-log">
-      <details open={status === 'running'}>
+      <details open={status === 'running'} className={status === 'running' ? 'running' : ''}>
         <summary>
           <span className="action-log-chevron">&#x25B6;</span>
-          {status === 'running' && <Spinner data-testid="action-log-spinner" />}
+          {status === 'running' && <Spinner size="small" data-testid="action-log-spinner" />}
           <span className="action-log-title">Claude の作業</span>
           <span className="action-log-current" data-testid="action-log-current">{currentText}</span>
           <span className="action-count" data-testid="action-count">{actions.length}</span>

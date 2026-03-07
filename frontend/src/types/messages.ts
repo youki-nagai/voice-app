@@ -55,6 +55,11 @@ export interface ActionLog {
   status: 'running' | 'done';
 }
 
+export type TimelineItem =
+  | { kind: 'message'; data: ChatMessage }
+  | { kind: 'action-log'; data: ActionLog }
+  | { kind: 'processing'; id: string; text: string };
+
 export type GitAction = 'check' | 'push' | 'pr' | 'branch' | 'log' | 'status';
 
 export interface GitCheckResult {

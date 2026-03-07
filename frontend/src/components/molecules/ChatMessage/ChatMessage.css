@@ -1,77 +1,84 @@
 .message {
-  padding: 10px 16px;
-  margin: 4px 0;
+  padding: 10px 14px;
   border-radius: 8px;
+  max-width: 85%;
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-word;
 }
 
 .message.user {
   background: #1a3a5c;
-  color: #c8e0f8;
   align-self: flex-end;
-  margin-left: 40px;
-  border-radius: 16px 16px 4px 16px;
+  color: #c8e0f8;
+}
+
+.message.interim {
+  background: #1a2a3c;
+  align-self: flex-end;
+  color: #7aa8d4;
+  opacity: 0.7;
+  font-style: italic;
 }
 
 .message.ai {
   background: #1a1a2e;
-  color: #d0d0e0;
-  margin-right: 40px;
-  border-radius: 16px 16px 16px 4px;
+  align-self: flex-start;
+  color: #b8b8e8;
 }
 
 .message.system {
-  background: #1a1a1a;
-  color: #888;
+  background: #1a2a1a;
+  align-self: center;
+  color: #88c888;
   font-size: 12px;
   text-align: center;
+}
+
+.message.system.processing {
+  background: #2a1e1a;
+  color: #f59e0b;
   display: flex;
   align-items: center;
-  gap: 8px;
   justify-content: center;
 }
 
 .message.error {
-  background: #2a1010;
-  color: #f87171;
-  border: 1px solid #451010;
-}
-
-.message.interim {
-  background: #1a2a1a;
-  color: #a0d0a0;
-  opacity: 0.8;
-  margin-left: 40px;
-  border-radius: 16px 16px 4px 16px;
-}
-
-.message.test-pass {
-  background: #0a2a0a;
-  color: #4ade80;
-  border: 1px solid #14532d;
-  font-size: 12px;
-}
-
-.message.test-fail {
-  background: #2a0a0a;
-  color: #f87171;
-  border: 1px solid #7f1d1d;
-  font-size: 12px;
-}
-
-.message.verify-failed {
-  background: #2a1a0a;
-  color: #fb923c;
-  border: 1px solid #7c2d12;
+  background: #2e1a1a;
+  align-self: center;
+  color: #e88888;
   font-size: 12px;
 }
 
 .message.commit {
-  background: #0a1a2a;
-  color: #60a5fa;
-  border: 1px solid #1e3a5f;
+  background: #2a2e1a;
+  align-self: center;
+  color: #c8c888;
   font-size: 12px;
+  font-family: monospace;
+}
+
+.message.test-pass {
+  background: #1a2e1a;
+  align-self: center;
+  color: #88c888;
+  font-size: 12px;
+  font-family: monospace;
+}
+
+.message.test-fail {
+  background: #2e1a1a;
+  align-self: center;
+  color: #e88888;
+  font-size: 12px;
+  font-family: monospace;
+}
+
+.message.verify-failed {
+  background: #2e1a1a;
+  align-self: center;
+  color: #e8a888;
+  font-size: 12px;
+  font-weight: bold;
 }

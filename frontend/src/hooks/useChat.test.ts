@@ -2,10 +2,22 @@ import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import { useChat } from './useChat';
 
+function getMessages(timeline: ReturnType<typeof useChat>['timeline']) {
+  return timeline.filter((item) => item.kind === 'message').map((item) => item.data);
+}
+
+function getActionLogs(timeline: ReturnType<typeof useChat>['timeline']) {
+  return timeline.filter((item) => item.kind === 'action-log').map((item) => item.data);
+}
+
+function getProcessing(timeline: ReturnType<typeof useChat>['timeline']) {
+  return timeline.filter((item) => item.kind === 'processing');
+}
+
 describe('useChat', () => {
-  it('starts with empty messages', () => {
+  it('starts with empty timeline', () => {
     const { result } = renderHook(() => useChat());
-    expect(result.current.messages).toEqual([]);
+    expect(result.current.timeline).toEqual([]);
   });
 
   it('adds a message', () => {
@@ -13,9 +25,10 @@ describe('useChat', () => {
     act(() => {
       result.current.addMessage('hello', 'user');
     });
-    expect(result.current.messages).toHaveLength(1);
-    expect(result.current.messages[0].text).toBe('hello');
-    expect(result.current.messages[0].type).toBe('user');
+    const messages = getMessages(result.current.timeline);
+    expect(messages).toHaveLength(1);
+    expect(messages[0].text).toBe('hello');
+    expect(messages[0].type).toBe('user');
   });
 
   it('adds multiple messages', () => {
@@ -24,7 +37,7 @@ describe('useChat', () => {
       result.current.addMessage('user msg', 'user');
       result.current.addMessage('ai msg', 'ai');
     });
-    expect(result.current.messages).toHaveLength(2);
+    expect(getMessages(result.current.timeline)).toHaveLength(2);
   });
 
   it('handles AI streaming chunks', () => {
@@ -32,15 +45,17 @@ describe('useChat', () => {
     act(() => {
       result.current.appendAiChunk('Hello');
     });
-    expect(result.current.messages).toHaveLength(1);
-    expect(result.current.messages[0].type).toBe('ai');
-    expect(result.current.messages[0].text).toBe('Hello');
+    let messages = getMessages(result.current.timeline);
+    expect(messages).toHaveLength(1);
+    expect(messages[0].type).toBe('ai');
+    expect(messages[0].text).toBe('Hello');
 
     act(() => {
       result.current.appendAiChunk(' World');
     });
-    expect(result.current.messages).toHaveLength(1);
-    expect(result.current.messages[0].text).toBe('Hello World');
+    messages = getMessages(result.current.timeline);
+    expect(messages).toHaveLength(1);
+    expect(messages[0].text).toBe('Hello World');
   });
 
   it('finalizes AI message and starts new one', () => {
@@ -54,32 +69,37 @@ describe('useChat', () => {
     act(() => {
       result.current.appendAiChunk('Second response');
     });
-    expect(result.current.messages).toHaveLength(2);
-    expect(result.current.messages[0].text).toBe('First response');
-    expect(result.current.messages[1].text).toBe('Second response');
+    const messages = getMessages(result.current.timeline);
+    expect(messages).toHaveLength(2);
+    expect(messages[0].text).toBe('First response');
+    expect(messages[1].text).toBe('Second response');
   });
 
-  it('manages processing text', () => {
+  it('manages processing text in timeline', () => {
     const { result } = renderHook(() => useChat());
     act(() => {
       result.current.setProcessingText('送信中...');
     });
-    expect(result.current.processingText).toBe('送信中...');
+    let processing = getProcessing(result.current.timeline);
+    expect(processing).toHaveLength(1);
+    expect(processing[0].text).toBe('送信中...');
     act(() => {
       result.current.setProcessingText(null);
     });
-    expect(result.current.processingText).toBeNull();
+    processing = getProcessing(result.current.timeline);
+    expect(processing).toHaveLength(0);
   });
 
-  it('manages action logs', () => {
+  it('manages action logs in timeline', () => {
     const { result } = renderHook(() => useChat());
     act(() => {
       result.current.addToolAction('bash', 'コマンド実行');
     });
-    expect(result.current.actionLogs).toHaveLength(1);
-    expect(result.current.actionLogs[0].actions).toHaveLength(1);
-    expect(result.current.actionLogs[0].actions[0].tool).toBe('bash');
-    expect(result.current.actionLogs[0].status).toBe('running');
+    const logs = getActionLogs(result.current.timeline);
+    expect(logs).toHaveLength(1);
+    expect(logs[0].actions).toHaveLength(1);
+    expect(logs[0].actions[0].tool).toBe('bash');
+    expect(logs[0].status).toBe('running');
   });
 
   it('adds multiple actions to same log', () => {
@@ -90,10 +110,11 @@ describe('useChat', () => {
     act(() => {
       result.current.addToolAction('read', 'ファイル読み込み');
     });
-    expect(result.current.actionLogs).toHaveLength(1);
-    expect(result.current.actionLogs[0].actions).toHaveLength(2);
-    expect(result.current.actionLogs[0].actions[0].status).toBe('done');
-    expect(result.current.actionLogs[0].actions[1].status).toBe('running');
+    const logs = getActionLogs(result.current.timeline);
+    expect(logs).toHaveLength(1);
+    expect(logs[0].actions).toHaveLength(2);
+    expect(logs[0].actions[0].status).toBe('done');
+    expect(logs[0].actions[1].status).toBe('running');
   });
 
   it('finalizes action log', () => {
@@ -104,8 +125,9 @@ describe('useChat', () => {
     act(() => {
       result.current.finalizeActionLog();
     });
-    expect(result.current.actionLogs[0].status).toBe('done');
-    expect(result.current.actionLogs[0].actions[0].status).toBe('done');
+    const logs = getActionLogs(result.current.timeline);
+    expect(logs[0].status).toBe('done');
+    expect(logs[0].actions[0].status).toBe('done');
   });
 
   it('starts new action log after finalization', () => {
@@ -119,6 +141,6 @@ describe('useChat', () => {
     act(() => {
       result.current.addToolAction('read', 'ファイル読み込み');
     });
-    expect(result.current.actionLogs).toHaveLength(2);
+    expect(getActionLogs(result.current.timeline)).toHaveLength(2);
   });
 });

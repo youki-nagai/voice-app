@@ -73,6 +73,11 @@ echo ""
 echo "=== Step 6: Back to develop ==="
 git checkout develop
 git pull origin develop
+if [ "$REPO_ROOT" != "$MAIN_REPO" ]; then
+    echo "Pulling develop in main repo..."
+    git -C "$MAIN_REPO" checkout develop
+    git -C "$MAIN_REPO" pull origin develop
+fi
 echo ""
 
 echo "=== Step 7: Restart server ==="
