@@ -37,7 +37,7 @@ describe("SessionTabs", () => {
     const onSelect = vi.fn();
     render(<SessionTabs {...defaultProps} onSelectSession={onSelect} />);
     fireEvent.click(screen.getByText("Chat 2"));
-    expect(onSelect).toHaveBeenCalledWith("s2");
+    expect(onSelect).toHaveBeenCalledWith("s2", undefined);
   });
 
   it("calls onAddSession when clicking add button", () => {
