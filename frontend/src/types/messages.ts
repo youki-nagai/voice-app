@@ -7,7 +7,12 @@ export type ServerMessage =
   | { type: "ai_done" }
   | { type: "complete" }
   | { type: "error"; text: string }
-  | { type: "keepalive" };
+  | { type: "keepalive" }
+  | {
+      type: "command";
+      command_type: "model" | "app";
+      command: Record<string, unknown>;
+    };
 
 export type ChatMessageType = "user" | "ai" | "system" | "error" | "interim";
 

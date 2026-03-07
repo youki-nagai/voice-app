@@ -8,6 +8,13 @@ def get_project_root() -> str:
     return path
 
 
+def get_anthropic_api_key() -> str:
+    key = os.environ.get("ANTHROPIC_API_KEY")
+    if not key:
+        raise RuntimeError("ANTHROPIC_API_KEY is not set")
+    return key
+
+
 def get_database_url() -> str:
     url = os.environ.get("DATABASE_URL")
     if not url:

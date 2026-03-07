@@ -65,11 +65,6 @@ export function ChatPage() {
 
   const getFocusedSessionId = useCallback(() => focusedIdRef.current, []);
 
-  const stream = useChatStream({
-    chat,
-    getActiveSessionId: getFocusedSessionId,
-  });
-
   const switchModel = useCallback(
     (model: ModelId) => {
       setSelectedModel(model);
@@ -80,6 +75,59 @@ export function ChatPage() {
       );
     },
     [chat],
+  );
+
+  const executeAppCommand = useCallback(
+    (appCmd: { type: string; [key: string]: unknown }) => {
+      const sid = focusedIdRef.current;
+      switch (appCmd.type) {
+        case "new-session": {
+          const newId = sessionManager.addSession();
+          chat.addMessage(newId, "新しいチャットを作成しました", "system");
+          break;
+        }
+        case "switch-session": {
+          const target =
+            appCmd.target === "next" || appCmd.target === "prev"
+              ? sessionManager.switchByDirection(
+                  appCmd.target as "next" | "prev",
+                )
+              : sessionManager.switchByIndex((appCmd.target as number) - 1);
+          if (target) {
+            chat.addMessage(sid, `${target.name} に切り替えました`, "system");
+          } else {
+            chat.addMessage(sid, "該当するチャットが見つかりません", "error");
+          }
+          break;
+        }
+        case "split": {
+          const newId = sessionManager.addSession();
+          sessionManager.splitSession(newId);
+          chat.addMessage(newId, "新しいセッションで分割しました", "system");
+          break;
+        }
+        case "unsplit":
+          if (sessionManager.isSplitView) {
+            sessionManager.unsplit();
+            chat.addMessage(sid, "分割を解除しました", "system");
+          } else {
+            chat.addMessage(sid, "分割されていません", "system");
+          }
+          break;
+        case "toggle-cheat-sheet":
+          toggleCheatSheet();
+          break;
+        case "set-silence-delay":
+          handleSilenceDelayChange(appCmd.seconds as number);
+          chat.addMessage(
+            sid,
+            `沈黙時間を${appCmd.seconds}秒に変更しました`,
+            "system",
+          );
+          break;
+      }
+    },
+    [chat, sessionManager, toggleCheatSheet, handleSilenceDelayChange],
   );
 
   const handleAppCommand = useCallback(
@@ -93,60 +141,28 @@ export function ChatPage() {
       const appCmd = detectAppCommand(text);
       if (!appCmd) return false;
 
-      const sid = focusedIdRef.current;
-      switch (appCmd.type) {
-        case "new-session": {
-          const newId = sessionManager.addSession();
-          chat.addMessage(newId, "新しいチャットを作成しました", "system");
-          return true;
-        }
-        case "switch-session": {
-          const target =
-            appCmd.target === "next" || appCmd.target === "prev"
-              ? sessionManager.switchByDirection(appCmd.target)
-              : sessionManager.switchByIndex(appCmd.target - 1);
-          if (target) {
-            chat.addMessage(sid, `${target.name} に切り替えました`, "system");
-          } else {
-            chat.addMessage(sid, "該当するチャットが見つかりません", "error");
-          }
-          return true;
-        }
-        case "split": {
-          const newId = sessionManager.addSession();
-          sessionManager.splitSession(newId);
-          chat.addMessage(newId, "新しいセッションで分割しました", "system");
-          return true;
-        }
-        case "unsplit":
-          if (sessionManager.isSplitView) {
-            sessionManager.unsplit();
-            chat.addMessage(sid, "分割を解除しました", "system");
-          } else {
-            chat.addMessage(sid, "分割されていません", "system");
-          }
-          return true;
-        case "toggle-cheat-sheet":
-          toggleCheatSheet();
-          return true;
-        case "set-silence-delay":
-          handleSilenceDelayChange(appCmd.seconds);
-          chat.addMessage(
-            sid,
-            `沈黙時間を${appCmd.seconds}秒に変更しました`,
-            "system",
-          );
-          return true;
+      executeAppCommand(appCmd);
+      return true;
+    },
+    [switchModel, executeAppCommand],
+  );
+
+  const handleBackendCommand = useCallback(
+    (commandType: "model" | "app", command: Record<string, unknown>) => {
+      if (commandType === "model") {
+        switchModel(command.model_id as ModelId);
+      } else {
+        executeAppCommand(command as { type: string; [key: string]: unknown });
       }
     },
-    [
-      chat,
-      sessionManager,
-      switchModel,
-      toggleCheatSheet,
-      handleSilenceDelayChange,
-    ],
+    [switchModel, executeAppCommand],
   );
+
+  const stream = useChatStream({
+    chat,
+    getActiveSessionId: getFocusedSessionId,
+    onCommand: handleBackendCommand,
+  });
 
   const sendMessage = useCallback(
     (text: string, images: string[] = [], skipUserDisplay = false) => {
