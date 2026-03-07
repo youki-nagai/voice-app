@@ -60,11 +60,13 @@ function ChatPanel({
   isFocused,
   onFocus,
   label,
+  onClose,
 }: {
   panel: PanelProps;
   isFocused: boolean;
   onFocus: () => void;
   label?: string;
+  onClose?: () => void;
 }) {
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: panel focus area
@@ -78,8 +80,23 @@ function ChatPanel({
       }}
     >
       {label && (
-        <div className="border-b border-border px-3 py-1 text-[10px] font-bold text-muted-foreground">
-          {label}
+        <div className="flex items-center justify-between border-b border-border px-3 py-1">
+          <span className="text-[10px] font-bold text-muted-foreground">
+            {label}
+          </span>
+          {onClose && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-4 w-4"
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          )}
         </div>
       )}
       <ChatArea timeline={panel.timeline} />
@@ -98,22 +115,6 @@ function ChatPanel({
         silenceDelaySeconds={panel.silenceDelaySeconds}
         onSilenceDelayChange={panel.onSilenceDelayChange}
       />
-    </div>
-  );
-}
-
-function SplitDivider({ onUnsplit }: { onUnsplit: () => void }) {
-  return (
-    <div className="group relative flex shrink-0 items-center justify-center">
-      <Separator orientation="vertical" />
-      <Button
-        variant="secondary"
-        size="icon"
-        className="absolute z-10 h-5 w-5 rounded-full opacity-0 shadow-md group-hover:opacity-100"
-        onClick={onUnsplit}
-      >
-        <X className="h-3 w-3" />
-      </Button>
     </div>
   );
 }
@@ -147,12 +148,13 @@ export function ChatTemplate(props: ChatTemplateProps) {
                 onFocus={() => props.onFocusPanel("primary")}
                 label="L"
               />
-              <SplitDivider onUnsplit={props.onUnsplit} />
+              <Separator orientation="vertical" />
               <ChatPanel
                 panel={props.secondary}
                 isFocused={props.focusedPanel === "secondary"}
                 onFocus={() => props.onFocusPanel("secondary")}
                 label="R"
+                onClose={props.onUnsplit}
               />
             </div>
           ) : (
