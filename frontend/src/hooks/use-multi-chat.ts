@@ -1,5 +1,9 @@
 import { useCallback, useRef, useState } from "react";
-import type { ChatMessageType, TimelineItem, ToolAction } from "../types/messages";
+import type {
+  ChatMessageType,
+  TimelineItem,
+  ToolAction,
+} from "../types/messages";
 
 let idCounter = 0;
 function nextId(): string {
@@ -25,12 +29,9 @@ export function useMultiChat() {
     [waitingStates],
   );
 
-  const setIsWaitingForAI = useCallback(
-    (sessionId: string, value: boolean) => {
-      setWaitingStates((prev) => ({ ...prev, [sessionId]: value }));
-    },
-    [],
-  );
+  const setIsWaitingForAI = useCallback((sessionId: string, value: boolean) => {
+    setWaitingStates((prev) => ({ ...prev, [sessionId]: value }));
+  }, []);
 
   const updateTimeline = useCallback(
     (sessionId: string, updater: (prev: TimelineItem[]) => TimelineItem[]) => {

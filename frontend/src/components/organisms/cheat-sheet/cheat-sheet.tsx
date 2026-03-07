@@ -1,11 +1,4 @@
-import {
-  Keyboard,
-  MessageSquarePlus,
-  Mic,
-  Mouse,
-  Type,
-  X,
-} from "lucide-react";
+import { Keyboard, MessageSquarePlus, Mic, Mouse, Type, X } from "lucide-react";
 import { useEffect } from "react";
 
 interface CheatSheetProps {
@@ -56,8 +49,7 @@ const sections: SheetSection[] = [
     title: "テキスト入力",
     note: "音声の代わりにテキストでも同じ指示が可能です。",
     items: [
-      { label: "Enter", description: "メッセージ送信" },
-      { label: "Shift + Enter", description: "改行" },
+      { label: "Cmd + Enter", description: "メッセージ送信" },
       { label: "画像ペースト", description: "Cmd+V で画像を添付" },
     ],
   },
@@ -105,6 +97,7 @@ export function CheatSheet({ isOpen, onClose }: CheatSheetProps) {
 
   return (
     <>
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop click to close */}
       <div
         data-testid="cheat-sheet-backdrop"
         className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity"

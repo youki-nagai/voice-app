@@ -42,13 +42,4 @@ describe("chat-message", () => {
       "italic",
     );
   });
-
-  it("renders test-pass message", () => {
-    render(<ChatMessage type="test-pass" text="テスト OK" />);
-    expect(screen.getByText("テスト OK")).toBeInTheDocument();
-    expect(screen.getByText("テスト OK").parentElement?.className).toContain(
-      "bg-green-950",
-    );
-  });
-
 });

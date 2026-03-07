@@ -25,17 +25,14 @@ pre-commit:
     filename-check:
       run: bunx @ls-lint/ls-lint
       fail_text: "Filename naming convention violated."
-    # frontend-lint:
-    #   glob: "frontend/**/*"
-    #   run: cd frontend && bunx biome check .
-    #   fail_text: "Frontend lint checks failed."
+    frontend-lint:
+      glob: "frontend/**/*"
+      run: cd frontend && bunx biome check .
+      fail_text: "Frontend lint checks failed."
     frontend-test:
       glob: "frontend/**/*"
       run: cd frontend && bunx vitest run
       fail_text: "Frontend tests failed."
-
-pre-push:
-  commands: {}
 
 post-checkout:
   commands:

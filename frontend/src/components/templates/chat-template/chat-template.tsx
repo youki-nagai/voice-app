@@ -22,7 +22,6 @@ interface ChatTemplateProps {
   onSelectSession: (id: string) => void;
   onAddSession: () => string;
   onRemoveSession: (id: string) => void;
-  onRenameSession: (id: string, name: string) => void;
   waitingSessionIds: string[];
   // ChatArea
   timeline: TimelineItem[];
@@ -55,7 +54,6 @@ export function ChatTemplate(props: ChatTemplateProps) {
         onSelectSession={props.onSelectSession}
         onAddSession={props.onAddSession}
         onRemoveSession={props.onRemoveSession}
-        onRenameSession={props.onRenameSession}
         waitingSessionIds={props.waitingSessionIds}
       />
       <ChatArea timeline={props.timeline} />

@@ -7,9 +7,7 @@ describe("useSessionManager", () => {
     const { result } = renderHook(() => useSessionManager());
     expect(result.current.sessions).toHaveLength(1);
     expect(result.current.sessions[0].name).toBe("Chat 1");
-    expect(result.current.activeSessionId).toBe(
-      result.current.sessions[0].id,
-    );
+    expect(result.current.activeSessionId).toBe(result.current.sessions[0].id);
   });
 
   it("adds a new session", () => {
@@ -23,11 +21,10 @@ describe("useSessionManager", () => {
 
   it("switches active session to newly added one", () => {
     const { result } = renderHook(() => useSessionManager());
-    let newId: string;
     act(() => {
-      newId = result.current.addSession();
+      result.current.addSession();
     });
-    expect(result.current.activeSessionId).toBe(newId!);
+    expect(result.current.activeSessionId).toBe(result.current.sessions[1].id);
   });
 
   it("sets active session", () => {
@@ -75,15 +72,6 @@ describe("useSessionManager", () => {
       result.current.removeSession(firstId);
     });
     expect(result.current.sessions).toHaveLength(1);
-  });
-
-  it("renames a session", () => {
-    const { result } = renderHook(() => useSessionManager());
-    const firstId = result.current.sessions[0].id;
-    act(() => {
-      result.current.renameSession(firstId, "My Chat");
-    });
-    expect(result.current.sessions[0].name).toBe("My Chat");
   });
 
   it("returns the active session object", () => {

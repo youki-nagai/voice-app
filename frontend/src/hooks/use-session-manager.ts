@@ -20,9 +20,7 @@ export function useSessionManager() {
   );
 
   const addSession = useCallback((): string => {
-    const newSession = createSession(
-      `Chat ${sessions.length + 1}`,
-    );
+    const newSession = createSession(`Chat ${sessions.length + 1}`);
     setSessions((prev) => [...prev, newSession]);
     setActiveSessionId(newSession.id);
     return newSession.id;
@@ -45,12 +43,6 @@ export function useSessionManager() {
     [activeSessionId],
   );
 
-  const renameSession = useCallback((id: string, name: string) => {
-    setSessions((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, name } : s)),
-    );
-  }, []);
-
   const activeSession = useMemo(
     () => sessions.find((s) => s.id === activeSessionId) ?? sessions[0],
     [sessions, activeSessionId],
@@ -63,6 +55,5 @@ export function useSessionManager() {
     addSession,
     removeSession,
     setActiveSession: setActiveSessionId,
-    renameSession,
   };
 }
