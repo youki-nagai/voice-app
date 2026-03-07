@@ -60,11 +60,16 @@ async def _generate_events(
 
     try:
         event_queue: asyncio.Queue[dict | None] = asyncio.Queue()
+        task_error: list[Exception] = []
 
         async def _collect_events() -> None:
-            async for event in claude_code.execute(prompt, model=model):
-                await event_queue.put(event)
-            await event_queue.put(None)
+            try:
+                async for event in claude_code.execute(prompt, model=model):
+                    await event_queue.put(event)
+            except Exception as e:
+                task_error.append(e)
+            finally:
+                await event_queue.put(None)
 
         task = asyncio.create_task(_collect_events())
 
@@ -79,6 +84,9 @@ async def _generate_events(
                 if event is None:
                     break
                 yield _sse(event)
+
+            if task_error:
+                raise task_error[0]
         finally:
             if not task.done():
                 task.cancel()
