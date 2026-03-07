@@ -1,3 +1,4 @@
+import base64
 import json
 from unittest.mock import MagicMock
 
@@ -114,3 +115,37 @@ class TestVoiceStream:
         assert ai_chunks[0]["text"] == "chunk1"
         assert ai_chunks[1]["text"] == "chunk2"
         assert ai_chunks[2]["text"] == "chunk3"
+
+    def test_given_image_when_stream_then_passes_image_path_to_claude(self):
+        mock_cc = MagicMock()
+        mock_cc.execute = MagicMock(
+            return_value=fake_execute(
+                {"type": "ai_chunk", "text": "画像を確認しました"},
+                {"type": "ai_done", "explanation": "完了"},
+            )
+        )
+        mock_git = MagicMock()
+        mock_git.auto_commit.return_value = None
+        self._override(mock_cc, mock_git)
+
+        # 1x1 赤ピクセルのPNG
+        png_data = base64.b64encode(
+            b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01"
+            b"\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00"
+            b"\x00\x00\x0cIDATx\x9cc\xf8\x0f\x00\x00\x01\x01\x00"
+            b"\x05\x18\xd8N\x00\x00\x00\x00IEND\xaeB`\x82"
+        ).decode()
+        image_data_url = f"data:image/png;base64,{png_data}"
+
+        response = self._client.post(
+            "/api/voice/stream",
+            json={"text": "この画像を見て", "image": image_data_url},
+        )
+
+        assert response.status_code == 200
+        types = [e["type"] for e in _parse_sse_events(response.text)]
+        assert "ai_chunk" in types
+        assert "complete" in types
+        # プロンプトに画像パスが含まれていること
+        call_args = mock_cc.execute.call_args
+        assert "添付画像:" in call_args[0][0]

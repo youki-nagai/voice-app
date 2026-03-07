@@ -1000,6 +1000,9 @@
                 return;
             }
 
+            // 送信前に画像プレビューをクリア
+            clearPendingImage();
+
             // SSEで送信
             addProcessingMessage('送信中...');
             isWaitingForAI = true;
@@ -1251,6 +1254,51 @@
             for (const p of opusPatterns) { if (n.includes(p)) return 'claude-opus-4-6'; }
             for (const p of sonnetPatterns) { if (n.includes(p)) return 'claude-sonnet-4-6'; }
             return null;
+        }
+
+        // クリップボード画像ペースト
+        textInput.addEventListener('paste', (e) => {
+            const items = e.clipboardData?.items;
+            if (!items) return;
+            for (const item of items) {
+                if (item.type.startsWith('image/')) {
+                    e.preventDefault();
+                    const file = item.getAsFile();
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        pendingImageDataUrl = reader.result;
+                        showImagePreview(reader.result);
+                    };
+                    reader.readAsDataURL(file);
+                    return;
+                }
+            }
+        });
+
+        function showImagePreview(dataUrl) {
+            clearImagePreviewElement();
+            const container = document.createElement('span');
+            container.className = 'image-preview-container';
+            container.id = 'image-preview';
+            const img = document.createElement('img');
+            img.src = dataUrl;
+            container.appendChild(img);
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'image-preview-remove';
+            removeBtn.textContent = '\u00d7';
+            removeBtn.addEventListener('click', () => clearPendingImage());
+            container.appendChild(removeBtn);
+            textInput.parentNode.insertBefore(container, textInput);
+        }
+
+        function clearPendingImage() {
+            pendingImageDataUrl = null;
+            clearImagePreviewElement();
+        }
+
+        function clearImagePreviewElement() {
+            const existing = document.getElementById('image-preview');
+            if (existing) existing.remove();
         }
 
         // 初期化
