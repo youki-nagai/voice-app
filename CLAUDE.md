@@ -16,7 +16,7 @@
 
 ## コード変更後の必須フロー
 
-**コードを修正したら `make deploy` を実行しろ。例外なし。**
+**コードを修正したら `make deploy` を確認なしで即実行しろ。例外なし。ユーザーに確認を取るな。**
 
 ```bash
 make deploy BRANCH=<branch-name> MSG="<commit-message>"
