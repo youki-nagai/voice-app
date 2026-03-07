@@ -32,7 +32,8 @@ export type AppCommand =
   | { type: "new-session" }
   | { type: "switch-session"; target: number | "next" | "prev" }
   | { type: "toggle-cheat-sheet" }
-  | { type: "set-silence-delay"; seconds: number };
+  | { type: "set-silence-delay"; seconds: number }
+  | { type: "unsplit" };
 
 function normalizeFullWidthDigits(s: string): string {
   return s.replace(/[０-９]/g, (ch) =>
@@ -76,6 +77,18 @@ export function detectAppCommand(text: string): AppCommand | null {
     if (seconds >= 0.5 && seconds <= 10) {
       return { type: "set-silence-delay", seconds };
     }
+  }
+
+  // Unsplit
+  if (
+    n.includes("分割解除") ||
+    n.includes("ペイン閉じ") ||
+    n.includes("パネル閉じ") ||
+    n.includes("分割閉じ") ||
+    n.includes("ペインとじ") ||
+    n.includes("パネルとじ")
+  ) {
+    return { type: "unsplit" };
   }
 
   // Cheat sheet

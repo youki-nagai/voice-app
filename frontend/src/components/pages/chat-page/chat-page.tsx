@@ -112,6 +112,14 @@ export function ChatPage() {
           }
           return true;
         }
+        case "unsplit":
+          if (sessionManager.isSplitView) {
+            sessionManager.unsplit();
+            chat.addMessage(sid, "分割を解除しました", "system");
+          } else {
+            chat.addMessage(sid, "分割されていません", "system");
+          }
+          return true;
         case "toggle-cheat-sheet":
           toggleCheatSheet();
           return true;
