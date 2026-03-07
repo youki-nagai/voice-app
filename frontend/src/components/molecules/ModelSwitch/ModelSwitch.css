@@ -1,0 +1,28 @@
+.model-switch {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.model-switch button {
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 12px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.model-switch button:hover {
+  color: #aaa;
+}
+
+.model-switch button.active {
+  background: #2a2a2a;
+  color: #fff;
+}

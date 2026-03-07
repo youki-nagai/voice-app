@@ -16,5 +16,9 @@ __pycache__/
 .idea/
 .vscode/
 
+# Frontend
+node_modules/
+frontend/dist/
+
 # Claude Code
 .claude/worktrees/

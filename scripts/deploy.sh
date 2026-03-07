@@ -38,10 +38,12 @@ cd ..
 echo ""
 
 echo "=== Step 3: E2E tests (pre-merge) ==="
+echo "Building frontend..."
+cd frontend && npm install && npm run build && cd ..
 pkill -f "uvicorn app.main:app" 2>/dev/null || true
 sleep 2
 cd backend
-nohup uv run uvicorn app.main:app --reload --reload-dir . --reload-dir ../frontend --host 0.0.0.0 --port 8000 --env-file ../.env > /dev/null 2>&1 &
+nohup uv run uvicorn app.main:app --reload --reload-dir . --reload-dir ../frontend/dist --host 0.0.0.0 --port 8000 --env-file ../.env > /dev/null 2>&1 &
 cd ..
 wait_for_server
 echo "Server started for E2E tests."
@@ -71,10 +73,11 @@ git pull origin develop
 echo ""
 
 echo "=== Step 7: Restart server ==="
+cd frontend && npm run build && cd ..
 pkill -f "uvicorn app.main:app" 2>/dev/null || true
 sleep 2
 cd backend
-nohup uv run uvicorn app.main:app --reload --reload-dir . --reload-dir ../frontend --host 0.0.0.0 --port 8000 --env-file ../.env > /dev/null 2>&1 &
+nohup uv run uvicorn app.main:app --reload --reload-dir . --reload-dir ../frontend/dist --host 0.0.0.0 --port 8000 --env-file ../.env > /dev/null 2>&1 &
 cd ..
 wait_for_server
 echo "Server restarted."

@@ -19,5 +19,5 @@ app.add_middleware(
 app.include_router(voice_router, prefix="/api/voice", tags=["voice"])
 app.include_router(git_router, prefix="/api/git", tags=["git"])
 
-frontend_path = Path(__file__).parent.parent.parent / "frontend"
-app.mount("/", StaticFiles(directory=str(frontend_path), html=True), name="frontend")
+frontend_dist_path = Path(__file__).parent.parent.parent / "frontend" / "dist"
+app.mount("/", StaticFiles(directory=str(frontend_dist_path), html=True), name="frontend")
