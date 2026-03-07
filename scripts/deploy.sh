@@ -98,16 +98,17 @@ gh pr merge --merge
 echo ""
 
 echo "=== Step 6: Back to develop ==="
-git checkout develop
-git pull origin develop
-if [ "$REPO_ROOT" != "$MAIN_REPO" ]; then
+if [ "$REPO_ROOT" = "$MAIN_REPO" ]; then
+    git checkout develop
+    git pull origin develop
+else
     echo "Pulling develop in main repo..."
-    git -C "$MAIN_REPO" checkout develop
     git -C "$MAIN_REPO" pull origin develop
 fi
 echo ""
 
 echo "=== Step 7: Restart server (port: 8000) ==="
+cd "$MAIN_REPO"
 cd frontend && bun run build && cd ..
 pkill -f "uvicorn app.main:app" 2>/dev/null || true
 sleep 2
