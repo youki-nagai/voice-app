@@ -18,12 +18,13 @@ export function TextInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === "Enter" && e.metaKey) {
       e.preventDefault();
       onSubmit?.();
     }
   };
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: value changes trigger textarea height recalculation
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
