@@ -34,7 +34,7 @@ export function TextInput({
   return (
     <textarea
       ref={textareaRef}
-      className="flex-1 resize-none border-0 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0"
+      className="flex-1 resize-none border-0 bg-transparent p-0 text-sm leading-normal text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0"
       value={value}
       onChange={(e) => onChange(e.target.value)}
       onKeyDown={handleKeyDown}
