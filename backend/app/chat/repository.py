@@ -46,5 +46,19 @@ class ChatRepository:
         thread = result.scalar_one()
         thread.title = title
 
+    async def list_threads(self) -> list[Thread]:
+        result = await self._session.execute(select(Thread).order_by(Thread.updated_at.desc()))
+        return list(result.scalars().all())
+
+    async def get_thread_messages(self, session_id: str) -> list[Message]:
+        result = await self._session.execute(select(Thread).where(Thread.session_id == session_id))
+        thread = result.scalar_one_or_none()
+        if not thread:
+            return []
+        msg_result = await self._session.execute(
+            select(Message).where(Message.thread_id == thread.id).order_by(Message.created_at.asc())
+        )
+        return list(msg_result.scalars().all())
+
     async def commit(self) -> None:
         await self._session.commit()

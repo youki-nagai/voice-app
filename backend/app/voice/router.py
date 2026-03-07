@@ -179,3 +179,33 @@ async def stream(
             yield _sse({"type": "error", "text": f"エラー: {e}\n{traceback.format_exc()}"})
 
     return EventSourceResponse(event_generator())
+
+
+@router.get("/threads")
+async def list_threads(chat_repo: ChatRepoDep):
+    threads = await chat_repo.list_threads()
+    return [
+        {
+            "session_id": t.session_id,
+            "title": t.title,
+            "created_at": t.created_at.isoformat(),
+            "updated_at": t.updated_at.isoformat(),
+        }
+        for t in threads
+    ]
+
+
+@router.get("/threads/{session_id}/messages")
+async def get_thread_messages(session_id: str, chat_repo: ChatRepoDep):
+    messages = await chat_repo.get_thread_messages(session_id)
+    return [
+        {
+            "role": m.role,
+            "text": m.text,
+            "model": m.model,
+            "images": m.images,
+            "tool_actions": m.tool_actions,
+            "created_at": m.created_at.isoformat(),
+        }
+        for m in messages
+    ]
