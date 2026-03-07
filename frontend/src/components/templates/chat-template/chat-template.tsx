@@ -1,8 +1,10 @@
+import type { Session } from "../../../hooks/use-session-manager";
 import type { ModelId, TimelineItem } from "../../../types/messages";
 import type { StatusDotStatus } from "../../atoms/status-dot/status-dot";
 import { ChatArea } from "../../organisms/chat-area/chat-area";
 import { ControlBar } from "../../organisms/control-bar/control-bar";
 import { Header } from "../../organisms/header/header";
+import { SessionTabs } from "../../organisms/session-tabs/session-tabs";
 
 interface ChatTemplateProps {
   // Header
@@ -10,6 +12,14 @@ interface ChatTemplateProps {
   onModelChange: (model: ModelId) => void;
   appStatus: StatusDotStatus;
   appStatusText: string;
+  // SessionTabs
+  sessions: Session[];
+  activeSessionId: string;
+  onSelectSession: (id: string) => void;
+  onAddSession: () => string;
+  onRemoveSession: (id: string) => void;
+  onRenameSession: (id: string, name: string) => void;
+  waitingSessionIds: string[];
   // ChatArea
   timeline: TimelineItem[];
   // ControlBar
@@ -33,6 +43,15 @@ export function ChatTemplate(props: ChatTemplateProps) {
         onModelChange={props.onModelChange}
         appStatus={props.appStatus}
         appStatusText={props.appStatusText}
+      />
+      <SessionTabs
+        sessions={props.sessions}
+        activeSessionId={props.activeSessionId}
+        onSelectSession={props.onSelectSession}
+        onAddSession={props.onAddSession}
+        onRemoveSession={props.onRemoveSession}
+        onRenameSession={props.onRenameSession}
+        waitingSessionIds={props.waitingSessionIds}
       />
       <ChatArea timeline={props.timeline} />
       <ControlBar

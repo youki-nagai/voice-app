@@ -22,6 +22,7 @@ class StreamRequest(BaseModel):
     text: str
     model: str = "claude-opus-4-6"
     images: list[str] = []
+    session_id: str = "default"
 
 
 def _sse(data: dict) -> dict:
@@ -45,6 +46,7 @@ async def _generate_events(
     claude_code: ClaudeCodeService,
     model: str = "claude-opus-4-6",
     image_paths: list[Path] | None = None,
+    session_id: str = "default",
 ) -> AsyncGenerator[dict]:
     if not instruction.strip():
         yield _sse({"type": "error", "text": "指示が空です"})
@@ -63,7 +65,7 @@ async def _generate_events(
 
         async def _collect_events() -> None:
             try:
-                async for event in claude_code.execute(prompt, model=model):
+                async for event in claude_code.execute(prompt, model=model, session_id=session_id):
                     await event_queue.put(event)
             except Exception as e:
                 task_error.append(e)
@@ -109,7 +111,13 @@ async def stream(
 
     async def event_generator() -> AsyncGenerator[dict]:
         try:
-            async for event in _generate_events(req.text, claude_code, model=req.model, image_paths=image_paths):
+            async for event in _generate_events(
+                req.text,
+                claude_code,
+                model=req.model,
+                image_paths=image_paths,
+                session_id=req.session_id,
+            ):
                 yield event
         except Exception as e:
             yield _sse({"type": "error", "text": f"エラー: {e}\n{traceback.format_exc()}"})
