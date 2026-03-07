@@ -44,22 +44,26 @@ wait_for_server() {
     return 1
 }
 
-echo "=== Step 0: Build frontend ==="
+echo "=== Step 0: Ensure PostgreSQL is running ==="
+docker compose -f "$REPO_ROOT/docker-compose.yml" up -d postgres
+echo ""
+
+echo "=== Step 1: Build frontend ==="
 cd frontend && bun install && bun run build && cd ..
 echo ""
 
-echo "=== Step 1: Unit tests ==="
+echo "=== Step 2: Unit tests ==="
 cd backend
 uv run pytest tests/ -v --ignore=tests/test_e2e.py
 echo ""
 
-echo "=== Step 2: lint/format ==="
+echo "=== Step 3: lint/format ==="
 uv run ruff check .
 uv run ruff format --check .
 cd ..
 echo ""
 
-echo "=== Step 3: E2E tests (pre-merge, port: ${E2E_PORT}) ==="
+echo "=== Step 4: E2E tests (pre-merge, port: ${E2E_PORT}) ==="
 cd backend
 nohup uv run uvicorn app.main:app --reload --reload-dir . --reload-dir ../frontend/dist --host 0.0.0.0 --port "$E2E_PORT" --env-file "$MAIN_REPO/.env" > /dev/null 2>&1 &
 E2E_SERVER_PID=$!
@@ -72,7 +76,7 @@ cd ..
 cleanup_e2e_server
 echo ""
 
-echo "=== Step 4: Branch → Commit → Push ==="
+echo "=== Step 5: Branch → Commit → Push ==="
 git fetch origin develop
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 if [ "$CURRENT_BRANCH" = "$BRANCH" ]; then
@@ -90,14 +94,14 @@ Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
 git push -u origin "$BRANCH"
 echo ""
 
-echo "=== Step 5: PR → Merge ==="
+echo "=== Step 6: PR → Merge ==="
 PR_URL=$(gh pr create --title "$MESSAGE" --base develop --body "Auto-deployed via scripts/deploy.sh")
 echo "PR: $PR_URL"
 gh pr view --web
 gh pr merge --merge
 echo ""
 
-echo "=== Step 6: Back to develop ==="
+echo "=== Step 7: Back to develop ==="
 if [ "$REPO_ROOT" = "$MAIN_REPO" ]; then
     LEFTHOOK=0 git checkout develop
     git pull origin develop
@@ -107,7 +111,7 @@ else
 fi
 echo ""
 
-echo "=== Step 7: Restart server (port: 8000 + 5173) ==="
+echo "=== Step 8: Restart server (port: 8000 + 5173) ==="
 cd "$MAIN_REPO"
 # 既存のdev serverプロセスをすべて停止
 pkill -f "uvicorn app.main:app" 2>/dev/null || true
