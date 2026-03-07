@@ -1,9 +1,13 @@
 import asyncio
 import json
+import logging
 import os
+import shutil
 from collections.abc import AsyncGenerator
 from pathlib import Path
 from typing import ClassVar
+
+logger = logging.getLogger(__name__)
 
 
 class ClaudeCodeService:
@@ -12,9 +16,20 @@ class ClaudeCodeService:
     def __init__(self, project_root: str):
         self._project_root = Path(project_root)
 
+    @staticmethod
+    def _find_claude_binary() -> str:
+        claude_path = shutil.which("claude")
+        if claude_path:
+            return claude_path
+        local_bin = Path.home() / ".local" / "bin" / "claude"
+        if local_bin.exists():
+            return str(local_bin)
+        raise RuntimeError("claude コマンドが見つかりません。Claude Code CLIをインストールしてください。")
+
     async def execute(self, prompt: str) -> AsyncGenerator[dict]:
+        claude_bin = self._find_claude_binary()
         cmd = [
-            "claude",
+            claude_bin,
             "-p",
             prompt,
             "--output-format",
@@ -26,6 +41,8 @@ class ClaudeCodeService:
             cmd.extend(["--resume", ClaudeCodeService._session_id])
 
         env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
+
+        logger.info("Claude Code CLI 起動: %s (cwd=%s)", claude_bin, self._project_root)
 
         proc = await asyncio.create_subprocess_exec(
             *cmd,
