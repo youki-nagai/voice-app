@@ -8,7 +8,6 @@ export type ServerMessageType =
   | "test_result"
   | "lint_result"
   | "verify_failed"
-  | "commit"
   | "complete"
   | "error"
   | "keepalive";
@@ -27,7 +26,6 @@ export type ServerMessage =
     }
   | { type: "lint_result"; success: boolean; output?: string }
   | { type: "verify_failed"; text: string }
-  | { type: "commit"; message: string }
   | { type: "complete" }
   | { type: "error"; text: string }
   | { type: "keepalive" };
@@ -40,8 +38,7 @@ export type ChatMessageType =
   | "interim"
   | "test-pass"
   | "test-fail"
-  | "verify-failed"
-  | "commit";
+  | "verify-failed";
 
 export interface ChatMessage {
   id: string;
@@ -66,15 +63,3 @@ export type TimelineItem =
   | { kind: "action-log"; data: ActionLog }
   | { kind: "processing"; id: string; text: string };
 
-export interface GitCheckResult {
-  gh_status: {
-    gh_installed: boolean;
-    gh_authenticated: boolean;
-    git_repo: boolean;
-    errors: string[];
-  };
-  repo_info?: {
-    remote_url: string;
-    current_branch: string;
-  };
-}

@@ -11,8 +11,7 @@ from pydantic import BaseModel
 from sse_starlette import EventSourceResponse
 
 from app.claude_code.service import ClaudeCodeService
-from app.dependencies import ClaudeCodeDep, GitServiceDep
-from app.git.service import GitService
+from app.dependencies import ClaudeCodeDep
 
 KEEPALIVE_INTERVAL_SECONDS = 15
 
@@ -44,7 +43,6 @@ def _save_image(image_data_url: str) -> Path:
 async def _generate_events(
     instruction: str,
     claude_code: ClaudeCodeService,
-    git_service: GitService,
     model: str = "claude-opus-4-6",
     image_path: Path | None = None,
 ) -> AsyncGenerator[dict]:
@@ -95,10 +93,6 @@ async def _generate_events(
             except (asyncio.CancelledError, Exception):
                 pass
 
-        commit_message = git_service.auto_commit(instruction)
-        if commit_message:
-            yield _sse({"type": "commit", "message": commit_message})
-
         yield _sse({"type": "complete"})
     finally:
         if image_path:
@@ -109,15 +103,12 @@ async def _generate_events(
 async def stream(
     req: StreamRequest,
     claude_code: ClaudeCodeDep,
-    git_service: GitServiceDep,
 ):
     image_path = _save_image(req.image) if req.image else None
 
     async def event_generator() -> AsyncGenerator[dict]:
         try:
-            async for event in _generate_events(
-                req.text, claude_code, git_service, model=req.model, image_path=image_path
-            ):
+            async for event in _generate_events(req.text, claude_code, model=req.model, image_path=image_path):
                 yield event
         except Exception as e:
             yield _sse({"type": "error", "text": f"エラー: {e}\n{traceback.format_exc()}"})

@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 
 from fastapi.testclient import TestClient
 
-from app.dependencies import get_claude_code_service, get_git_service
+from app.dependencies import get_claude_code_service
 from app.main import app
 
 
@@ -32,9 +32,8 @@ class TestVoiceStream:
     def teardown_method(self):
         app.dependency_overrides.clear()
 
-    def _override(self, mock_claude_code, mock_git):
+    def _override(self, mock_claude_code):
         app.dependency_overrides[get_claude_code_service] = lambda: mock_claude_code
-        app.dependency_overrides[get_git_service] = lambda: mock_git
 
     def test_given_valid_instruction_when_stream_then_returns_sse_events(self):
         mock_cc = MagicMock()
@@ -45,9 +44,7 @@ class TestVoiceStream:
                 {"type": "ai_done", "explanation": "完了"},
             )
         )
-        mock_git = MagicMock()
-        mock_git.auto_commit.return_value = "voice: テスト"
-        self._override(mock_cc, mock_git)
+        self._override(mock_cc)
 
         response = self._client.post("/api/voice/stream", json={"text": "テストファイルを作成して"})
 
@@ -57,10 +54,9 @@ class TestVoiceStream:
         assert "ai_chunk" in types
         assert "file_change" in types
         assert "ai_done" in types
-        assert "commit" in types
         assert "complete" in types
 
-    def test_given_no_file_changes_when_stream_then_skips_commit(self):
+    def test_given_no_file_changes_when_stream_then_completes_without_commit(self):
         mock_cc = MagicMock()
         mock_cc.execute = MagicMock(
             return_value=fake_execute(
@@ -68,9 +64,7 @@ class TestVoiceStream:
                 {"type": "ai_done", "explanation": "回答完了"},
             )
         )
-        mock_git = MagicMock()
-        mock_git.auto_commit.return_value = None
-        self._override(mock_cc, mock_git)
+        self._override(mock_cc)
 
         response = self._client.post("/api/voice/stream", json={"text": "これは何ですか"})
 
@@ -78,13 +72,11 @@ class TestVoiceStream:
         types = [e["type"] for e in _parse_sse_events(response.text)]
         assert "ai_chunk" in types
         assert "ai_done" in types
-        assert "commit" not in types
         assert "complete" in types
 
     def test_given_empty_instruction_when_stream_then_returns_error(self):
         mock_cc = MagicMock()
-        mock_git = MagicMock()
-        self._override(mock_cc, mock_git)
+        self._override(mock_cc)
 
         response = self._client.post("/api/voice/stream", json={"text": ""})
 
@@ -103,9 +95,7 @@ class TestVoiceStream:
                 {"type": "ai_done", "explanation": ""},
             )
         )
-        mock_git = MagicMock()
-        mock_git.auto_commit.return_value = None
-        self._override(mock_cc, mock_git)
+        self._override(mock_cc)
 
         response = self._client.post("/api/voice/stream", json={"text": "テスト"})
 
@@ -124,9 +114,7 @@ class TestVoiceStream:
                 {"type": "ai_done", "explanation": "完了"},
             )
         )
-        mock_git = MagicMock()
-        mock_git.auto_commit.return_value = None
-        self._override(mock_cc, mock_git)
+        self._override(mock_cc)
 
         # 1x1 赤ピクセルのPNG
         png_data = base64.b64encode(

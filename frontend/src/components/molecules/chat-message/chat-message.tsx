@@ -14,7 +14,6 @@ const typeStyles: Record<ChatMessageType, string> = {
   ai: "bg-indigo-950 self-start text-indigo-200",
   system: "bg-green-950 self-center text-green-300 text-xs text-center",
   error: "bg-red-950 self-center text-red-300 text-xs",
-  commit: "bg-yellow-950 self-center text-yellow-300 text-xs font-mono",
   "test-pass": "bg-green-950 self-center text-green-300 text-xs font-mono",
   "test-fail": "bg-red-950 self-center text-red-300 text-xs font-mono",
   "verify-failed": "bg-red-950 self-center text-orange-300 text-xs font-bold",

@@ -1,14 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useChat } from "../../../hooks/use-chat";
-import { useGitCommands } from "../../../hooks/use-git-commands";
-import { useGitStatus } from "../../../hooks/use-git-status";
 import { useSpeechRecognition } from "../../../hooks/use-speech-recognition";
 import { useSSE } from "../../../hooks/use-sse";
-import {
-  detectGitCommand,
-  detectModelCommand,
-  getModelLabel,
-} from "../../../types/git";
+import { detectModelCommand, getModelLabel } from "../../../types/commands";
 import type {
   ModelId,
   ServerMessage,
@@ -26,11 +20,6 @@ export function ChatPage() {
   const [interimText, setInterimText] = useState<string | null>(null);
 
   const chat = useChat();
-  const { gitStatus, gitBranch, checkGitStatus } = useGitStatus();
-  const { executeGitCommand } = useGitCommands({
-    addMessage: chat.addMessage,
-    checkGitStatus,
-  });
 
   const handleServerMessage = useCallback(
     (msg: ServerMessage) => {
@@ -73,9 +62,6 @@ export function ChatPage() {
           break;
         case "verify_failed":
           chat.addMessage(msg.text, "verify-failed");
-          break;
-        case "commit":
-          chat.addMessage(`committed: ${msg.message}`, "commit");
           break;
         case "complete":
           setIsWaitingForAI(false);
@@ -130,12 +116,6 @@ export function ChatPage() {
         return;
       }
 
-      const gitAction = detectGitCommand(text);
-      if (gitAction) {
-        executeGitCommand(gitAction, text);
-        return;
-      }
-
       const imageToSend = pendingImageUrl;
       setPendingImageUrl(null);
 
@@ -143,15 +123,7 @@ export function ChatPage() {
       setIsWaitingForAI(true);
       sse.sendStream(text, selectedModel, imageToSend);
     },
-    [
-      isWaitingForAI,
-      chat,
-      selectedModel,
-      pendingImageUrl,
-      sse,
-      executeGitCommand,
-      switchModel,
-    ],
+    [isWaitingForAI, chat, selectedModel, pendingImageUrl, sse, switchModel],
   );
 
   const handleSpeechComplete = useCallback(
@@ -184,11 +156,6 @@ export function ChatPage() {
     }
   }, [textValue, sendMessage]);
 
-  const handleGitStatusClick = useCallback(
-    () => executeGitCommand("check", ""),
-    [executeGitCommand],
-  );
-
   const handleImagePaste = useCallback((e: React.ClipboardEvent) => {
     const items = e.clipboardData?.items;
     if (!items) return;
@@ -209,7 +176,6 @@ export function ChatPage() {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: initialization effect - runs once on mount
   useEffect(() => {
-    checkGitStatus();
     const timer = setTimeout(() => speech.setRecordingEnabled(true), 500);
     return () => clearTimeout(timer);
   }, []);
@@ -238,9 +204,6 @@ export function ChatPage() {
     <ChatTemplate
       selectedModel={selectedModel}
       onModelChange={switchModel}
-      gitStatus={gitStatus}
-      gitBranch={gitBranch}
-      onGitStatusClick={handleGitStatusClick}
       appStatus={appStatus}
       appStatusText={appStatusText}
       timeline={displayTimeline}

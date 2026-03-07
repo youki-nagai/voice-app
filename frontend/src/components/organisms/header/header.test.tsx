@@ -7,9 +7,6 @@ describe("header", () => {
   const defaultProps = {
     selectedModel: "claude-opus-4-6" as const,
     onModelChange: vi.fn(),
-    gitStatus: "ok" as const,
-    gitBranch: "main",
-    onGitStatusClick: vi.fn(),
     appStatus: "connected" as const,
     appStatusText: "準備完了",
   };
@@ -23,11 +20,6 @@ describe("header", () => {
     render(<Header {...defaultProps} />);
     expect(screen.getByRole("button", { name: "Opus" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Sonnet" })).toBeInTheDocument();
-  });
-
-  it("renders git status", () => {
-    render(<Header {...defaultProps} />);
-    expect(screen.getByText("Git: main")).toBeInTheDocument();
   });
 
   it("renders app status", () => {
