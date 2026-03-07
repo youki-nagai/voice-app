@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { Textarea } from "@/components/ui/textarea";
 
 interface TextInputProps {
   value: string;
@@ -33,9 +34,9 @@ export function TextInput({
   }, [value]);
 
   return (
-    <textarea
+    <Textarea
       ref={textareaRef}
-      className="flex-1 resize-none border-0 bg-transparent p-0 text-sm leading-normal text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0"
+      className="flex-1 resize-none border-0 bg-transparent p-0 text-sm leading-normal min-h-0 text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
       value={value}
       onChange={(e) => onChange(e.target.value)}
       onKeyDown={handleKeyDown}

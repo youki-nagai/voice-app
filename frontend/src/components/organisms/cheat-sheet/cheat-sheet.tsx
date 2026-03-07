@@ -1,5 +1,12 @@
-import { Keyboard, MessageSquarePlus, Mic, Mouse, Type, X } from "lucide-react";
-import { useEffect } from "react";
+import { Keyboard, MessageSquarePlus, Mic, Mouse, Type } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 
 interface CheatSheetProps {
   isOpen: boolean;
@@ -88,46 +95,22 @@ const sections: SheetSection[] = [
 ];
 
 export function CheatSheet({ isOpen, onClose }: CheatSheetProps) {
-  useEffect(() => {
-    if (!isOpen) return;
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
-
   return (
-    <>
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop click to close */}
-      <div
-        data-testid="cheat-sheet-backdrop"
-        className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity"
-        onClick={onClose}
-        onKeyDown={() => {}}
-        role="presentation"
-      />
-      <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-sm flex-col border-l border-border bg-background shadow-2xl">
-        <div className="flex items-center justify-between border-b border-border px-5 py-3">
-          <h2 className="text-sm font-semibold text-foreground">使い方</h2>
-          <div className="flex items-center gap-2">
+    <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <SheetContent className="flex flex-col gap-0 p-0">
+        <SheetHeader className="border-b border-border px-5 py-3">
+          <div className="flex items-center justify-between">
+            <SheetTitle className="text-sm">使い方</SheetTitle>
+            <SheetDescription className="sr-only">
+              アプリの操作方法
+            </SheetDescription>
             <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
               Cmd + /
             </kbd>
-            <button
-              type="button"
-              title="閉じる"
-              className="rounded p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-              onClick={onClose}
-            >
-              <X className="h-4 w-4" />
-            </button>
           </div>
-        </div>
-        <div className="flex-1 overflow-y-auto px-5 py-4">
-          <div className="flex flex-col gap-5">
+        </SheetHeader>
+        <ScrollArea className="flex-1">
+          <div className="flex flex-col gap-5 px-5 py-4">
             {sections.map((section) => (
               <div key={section.title}>
                 <div className="mb-1.5 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -165,8 +148,8 @@ export function CheatSheet({ isOpen, onClose }: CheatSheetProps) {
               </div>
             ))}
           </div>
-        </div>
-      </div>
-    </>
+        </ScrollArea>
+      </SheetContent>
+    </Sheet>
   );
 }

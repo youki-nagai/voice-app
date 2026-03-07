@@ -1,4 +1,12 @@
 import { HelpCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { ModelId } from "../../../types/messages";
 import type { StatusDotStatus } from "../../atoms/status-dot/status-dot";
 import { StatusDot } from "../../atoms/status-dot/status-dot";
@@ -27,18 +35,28 @@ export function Header({
           selectedModel={selectedModel}
           onModelChange={onModelChange}
         />
+        <Separator orientation="vertical" className="h-4" />
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <StatusDot status={appStatus} />
           <span>{appStatusText}</span>
         </div>
-        <button
-          type="button"
-          title="使い方 (Cmd+/)"
-          className="rounded p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          onClick={onHelpToggle}
-        >
-          <HelpCircle className="h-4 w-4" />
-        </button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={onHelpToggle}
+              >
+                <HelpCircle className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>使い方 (Cmd+/)</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     </header>
   );

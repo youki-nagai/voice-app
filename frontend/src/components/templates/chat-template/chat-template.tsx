@@ -1,4 +1,6 @@
 import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import type { FocusedPanel } from "../../../hooks/use-session-manager";
 import type { ModelId, TimelineItem } from "../../../types/messages";
 import type { StatusDotStatus } from "../../atoms/status-dot/status-dot";
@@ -63,6 +65,7 @@ function ChatPanel({
   label?: string;
 }) {
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: panel focus area
     <div
       className={`flex min-w-0 flex-1 flex-col ${
         isFocused ? "ring-1 ring-accent/50 ring-inset" : ""
@@ -98,15 +101,16 @@ function ChatPanel({
 
 function SplitDivider({ onUnsplit }: { onUnsplit: () => void }) {
   return (
-    <div className="group relative flex w-1 shrink-0 items-center justify-center bg-border transition-colors hover:bg-accent/40">
-      <button
-        type="button"
-        title="分割を解除"
+    <div className="group relative flex shrink-0 items-center justify-center">
+      <Separator orientation="vertical" />
+      <Button
+        variant="secondary"
+        size="icon"
+        className="absolute z-10 h-5 w-5 rounded-full opacity-0 shadow-md group-hover:opacity-100"
         onClick={onUnsplit}
-        className="absolute z-10 rounded-full bg-zinc-700 p-0.5 opacity-0 shadow-md transition-opacity hover:bg-zinc-600 group-hover:opacity-100"
       >
-        <X className="h-3 w-3 text-zinc-300" />
-      </button>
+        <X className="h-3 w-3" />
+      </Button>
     </div>
   );
 }

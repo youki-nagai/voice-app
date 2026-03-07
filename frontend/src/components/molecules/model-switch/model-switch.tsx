@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { ModelId } from "../../../types/messages";
 
 interface ModelSwitchProps {
@@ -16,20 +16,19 @@ export function ModelSwitch({
   onModelChange,
 }: ModelSwitchProps) {
   return (
-    <div className="flex items-center overflow-hidden rounded-md border border-border bg-card">
+    <ToggleGroup
+      type="single"
+      size="sm"
+      value={selectedModel}
+      onValueChange={(value) => {
+        if (value) onModelChange(value as ModelId);
+      }}
+    >
       {MODELS.map(({ id, label }) => (
-        <button
-          type="button"
-          key={id}
-          className={cn(
-            "border-0 bg-transparent px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:text-accent-foreground",
-            selectedModel === id && "bg-blue-950 text-blue-200",
-          )}
-          onClick={() => onModelChange(id)}
-        >
+        <ToggleGroupItem key={id} value={id} className="text-xs px-2.5">
           {label}
-        </button>
+        </ToggleGroupItem>
       ))}
-    </div>
+    </ToggleGroup>
   );
 }

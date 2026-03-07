@@ -19,8 +19,8 @@ describe("header", () => {
 
   it("renders model switch", () => {
     render(<Header {...defaultProps} />);
-    expect(screen.getByRole("button", { name: "Opus" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Sonnet" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Opus" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Sonnet" })).toBeInTheDocument();
   });
 
   it("renders app status", () => {
@@ -32,7 +32,7 @@ describe("header", () => {
     const user = userEvent.setup();
     const onModelChange = vi.fn();
     render(<Header {...defaultProps} onModelChange={onModelChange} />);
-    await user.click(screen.getByRole("button", { name: "Sonnet" }));
+    await user.click(screen.getByRole("radio", { name: "Sonnet" }));
     expect(onModelChange).toHaveBeenCalledWith("claude-sonnet-4-6");
   });
 });
