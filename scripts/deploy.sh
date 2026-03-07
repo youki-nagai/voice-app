@@ -124,7 +124,7 @@ if [ -n "$WORKTREE" ]; then
     WORKTREE_PATH="$MAIN_REPO/.claude/worktrees/$WORKTREE"
     if [ -d "$WORKTREE_PATH" ]; then
         echo "=== Step 8: Worktree cleanup ==="
-        git -C "$MAIN_REPO" worktree remove "$WORKTREE_PATH"
+        git -C "$MAIN_REPO" worktree remove --force "$WORKTREE_PATH"
         WORKTREE_BRANCH="worktree-$WORKTREE"
         if git -C "$MAIN_REPO" rev-parse --verify "$WORKTREE_BRANCH" >/dev/null 2>&1; then
             git -C "$MAIN_REPO" branch -D "$WORKTREE_BRANCH"
