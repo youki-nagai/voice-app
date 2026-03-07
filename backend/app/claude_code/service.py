@@ -19,6 +19,7 @@ class ClaudeCodeService:
             prompt,
             "--output-format",
             "stream-json",
+            "--verbose",
             "--dangerously-skip-permissions",
         ]
         if ClaudeCodeService._session_id:
