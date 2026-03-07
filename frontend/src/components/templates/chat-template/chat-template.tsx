@@ -6,6 +6,7 @@ import { CheatSheet } from "../../organisms/cheat-sheet/cheat-sheet";
 import { ControlBar } from "../../organisms/control-bar/control-bar";
 import { Header } from "../../organisms/header/header";
 import { SessionTabs } from "../../organisms/session-tabs/session-tabs";
+import { ThreadSidebar } from "../../organisms/thread-sidebar/thread-sidebar";
 
 interface PanelProps {
   timeline: TimelineItem[];
@@ -58,6 +59,10 @@ interface ChatTemplateProps {
   onUnsplit: () => void;
   onFocusPanel: (panel: FocusedPanel) => void;
   waitingSessionIds: string[];
+  // ThreadSidebar
+  isSidebarOpen: boolean;
+  onSidebarToggle: () => void;
+  onSelectThread: (sessionId: string) => void;
   // Primary panel
   primary: PanelProps;
   // Secondary panel (split view)
@@ -158,43 +163,54 @@ export function ChatTemplate(props: ChatTemplateProps) {
           waitingSessionIds={props.waitingSessionIds}
         />
       )}
-      {props.isSplitView && props.secondary ? (
-        <div className="flex flex-1 min-h-0">
-          <ChatPanel
-            panel={props.primary}
-            isFocused={props.focusedPanel === "primary"}
-            onFocus={() => props.onFocusPanel("primary")}
-            tabsConfig={tabsConfig}
-            forPanel="primary"
-          />
-          <div className="w-px bg-border" />
-          <ChatPanel
-            panel={props.secondary}
-            isFocused={props.focusedPanel === "secondary"}
-            onFocus={() => props.onFocusPanel("secondary")}
-            tabsConfig={tabsConfig}
-            forPanel="secondary"
-          />
+      <div className="relative flex flex-1 min-h-0">
+        <ThreadSidebar
+          isOpen={props.isSidebarOpen}
+          onToggle={props.onSidebarToggle}
+          onSelectThread={props.onSelectThread}
+          onNewChat={props.onAddSession}
+          activeSessionId={props.activeSessionId}
+        />
+        <div className="flex flex-1 min-w-0 flex-col">
+          {props.isSplitView && props.secondary ? (
+            <div className="flex flex-1 min-h-0">
+              <ChatPanel
+                panel={props.primary}
+                isFocused={props.focusedPanel === "primary"}
+                onFocus={() => props.onFocusPanel("primary")}
+                tabsConfig={tabsConfig}
+                forPanel="primary"
+              />
+              <div className="w-px bg-border" />
+              <ChatPanel
+                panel={props.secondary}
+                isFocused={props.focusedPanel === "secondary"}
+                onFocus={() => props.onFocusPanel("secondary")}
+                tabsConfig={tabsConfig}
+                forPanel="secondary"
+              />
+            </div>
+          ) : (
+            <>
+              <ChatArea timeline={props.primary.timeline} />
+              <ControlBar
+                textValue={props.primary.textValue}
+                onTextChange={props.primary.onTextChange}
+                onSend={props.primary.onSend}
+                isRecording={props.primary.isRecording}
+                onMicToggle={props.primary.onMicToggle}
+                silenceTimerText={props.primary.silenceTimerText}
+                isWaitingForAI={props.primary.isWaitingForAI}
+                pendingImageUrls={props.primary.pendingImageUrls}
+                onImagePaste={props.primary.onImagePaste}
+                onImageRemove={props.primary.onImageRemove}
+                silenceDelaySeconds={props.primary.silenceDelaySeconds}
+                onSilenceDelayChange={props.primary.onSilenceDelayChange}
+              />
+            </>
+          )}
         </div>
-      ) : (
-        <>
-          <ChatArea timeline={props.primary.timeline} />
-          <ControlBar
-            textValue={props.primary.textValue}
-            onTextChange={props.primary.onTextChange}
-            onSend={props.primary.onSend}
-            isRecording={props.primary.isRecording}
-            onMicToggle={props.primary.onMicToggle}
-            silenceTimerText={props.primary.silenceTimerText}
-            isWaitingForAI={props.primary.isWaitingForAI}
-            pendingImageUrls={props.primary.pendingImageUrls}
-            onImagePaste={props.primary.onImagePaste}
-            onImageRemove={props.primary.onImageRemove}
-            silenceDelaySeconds={props.primary.silenceDelaySeconds}
-            onSilenceDelayChange={props.primary.onSilenceDelayChange}
-          />
-        </>
-      )}
+      </div>
       <CheatSheet
         isOpen={props.isCheatSheetOpen}
         onClose={props.onCheatSheetToggle}

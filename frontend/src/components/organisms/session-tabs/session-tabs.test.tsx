@@ -56,9 +56,7 @@ describe("SessionTabs", () => {
   });
 
   it("hides close button when only one session", () => {
-    render(
-      <SessionTabs {...defaultProps} sessions={[baseSessions[0]]} />,
-    );
+    render(<SessionTabs {...defaultProps} sessions={[baseSessions[0]]} />);
     expect(screen.queryByTitle("チャットを閉じる")).not.toBeInTheDocument();
   });
 

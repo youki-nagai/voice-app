@@ -35,6 +35,25 @@ export function useSessionManager() {
     return newSession.id;
   }, [sessions.length]);
 
+  const addSessionWithId = useCallback(
+    (id: string, name?: string) => {
+      const existing = sessions.find((s) => s.id === id);
+      if (existing) {
+        setActiveSessionId(id);
+        setFocusedPanel("primary");
+        return;
+      }
+      const session: Session = {
+        id,
+        name: name ?? `Chat ${sessions.length + 1}`,
+      };
+      setSessions((prev) => [...prev, session]);
+      setActiveSessionId(id);
+      setFocusedPanel("primary");
+    },
+    [sessions],
+  );
+
   const removeSession = useCallback(
     (id: string) => {
       setSessions((prev) => {
@@ -141,6 +160,7 @@ export function useSessionManager() {
     focusedSessionId,
     setFocusedPanel,
     addSession,
+    addSessionWithId,
     removeSession,
     setActiveSession: setActiveSessionId,
     selectSession,

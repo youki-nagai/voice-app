@@ -12,7 +12,12 @@ import {
   detectModelCommand,
   getModelLabel,
 } from "../../../types/commands";
-import type { ModelId, TimelineItem } from "../../../types/messages";
+import type {
+  ChatMessageType,
+  ModelId,
+  TimelineItem,
+  ToolAction,
+} from "../../../types/messages";
 import type { StatusDotStatus } from "../../atoms/status-dot/status-dot";
 import { ChatTemplate } from "../../templates/chat-template/chat-template";
 
@@ -38,6 +43,7 @@ export function ChatPage() {
   >([]);
   const [interimText, setInterimText] = useState<string | null>(null);
   const [isCheatSheetOpen, setIsCheatSheetOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [silenceDelayMs, setSilenceDelayMs] = useState(DEFAULT_SILENCE_DELAY);
 
   const silenceDelaySeconds = silenceDelayMs / 1000;
@@ -47,6 +53,10 @@ export function ChatPage() {
 
   const toggleCheatSheet = useCallback(() => {
     setIsCheatSheetOpen((prev) => !prev);
+  }, []);
+
+  const toggleSidebar = useCallback(() => {
+    setIsSidebarOpen((prev) => !prev);
   }, []);
 
   useKeyboardShortcut("/", toggleCheatSheet, { meta: true });
@@ -177,8 +187,7 @@ export function ChatPage() {
   const speech = useSpeechRecognition({
     onSpeechComplete: handleSpeechComplete,
     onInterimUpdate: (text) => setInterimText(text),
-    onError: (error) =>
-      chat.addMessage(focusedIdRef.current, error, "error"),
+    onError: (error) => chat.addMessage(focusedIdRef.current, error, "error"),
     silenceDelay: silenceDelayMs,
   });
 
@@ -205,7 +214,10 @@ export function ChatPage() {
   }, [secondaryTextValue, sendMessage, sessionManager]);
 
   const handleImagePaste = useCallback(
-    (e: React.ClipboardEvent, setPendingImages: React.Dispatch<React.SetStateAction<string[]>>) => {
+    (
+      e: React.ClipboardEvent,
+      setPendingImages: React.Dispatch<React.SetStateAction<string[]>>,
+    ) => {
       const items = e.clipboardData?.items;
       if (!items) return;
       for (const item of Array.from(items)) {
@@ -233,6 +245,69 @@ export function ChatPage() {
     [sessionManager, chat],
   );
 
+  const handleSelectThread = useCallback(
+    async (sessionId: string) => {
+      const existingSession = sessionManager.sessions.find(
+        (s) => s.id === sessionId,
+      );
+      if (existingSession) {
+        sessionManager.selectSession(sessionId);
+        return;
+      }
+
+      try {
+        const res = await fetch(
+          `/api/voice/threads/${encodeURIComponent(sessionId)}/messages`,
+        );
+        if (!res.ok) return;
+
+        const messages: Array<{
+          role: string;
+          text: string;
+          tool_actions: Array<{ tool: string; text: string }> | null;
+        }> = await res.json();
+
+        const timeline: TimelineItem[] = [];
+        let msgId = 0;
+        for (const msg of messages) {
+          const type: ChatMessageType =
+            msg.role === "ai"
+              ? "ai"
+              : msg.role === "user"
+                ? "user"
+                : msg.role === "error"
+                  ? "error"
+                  : "system";
+          timeline.push({
+            kind: "message",
+            data: { id: `restored-${++msgId}`, type, text: msg.text },
+          });
+          if (msg.tool_actions && msg.tool_actions.length > 0) {
+            const actions: ToolAction[] = msg.tool_actions.map((a) => ({
+              tool: a.tool,
+              text: a.text,
+              status: "done" as const,
+            }));
+            timeline.push({
+              kind: "action-log",
+              data: {
+                id: `restored-action-${++msgId}`,
+                status: "done",
+                actions,
+              },
+            });
+          }
+        }
+
+        sessionManager.addSessionWithId(sessionId);
+        chat.setTimeline(sessionId, timeline);
+      } catch {
+        // silently fail
+      }
+    },
+    [sessionManager, chat],
+  );
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: initialization effect - runs once on mount
   useEffect(() => {
     const timer = setTimeout(() => speech.setRecordingEnabled(true), 500);
@@ -248,7 +323,10 @@ export function ChatPage() {
     speech.isRecording,
   );
 
-  const buildTimeline = (sessionId: string, showInterim: boolean): TimelineItem[] => {
+  const buildTimeline = (
+    sessionId: string,
+    showInterim: boolean,
+  ): TimelineItem[] => {
     const timeline: TimelineItem[] = [...chat.getTimeline(sessionId)];
     if (showInterim && interimText) {
       timeline.push({
@@ -292,14 +370,21 @@ export function ChatPage() {
       onUnsplit={sessionManager.unsplit}
       onFocusPanel={sessionManager.setFocusedPanel}
       waitingSessionIds={waitingSessionIds}
+      isSidebarOpen={isSidebarOpen}
+      onSidebarToggle={toggleSidebar}
+      onSelectThread={handleSelectThread}
       primary={{
         timeline: primaryTimeline,
         textValue: primaryTextValue,
         onTextChange: setPrimaryTextValue,
         onSend: handlePrimarySend,
-        isRecording: speech.isRecording && sessionManager.focusedPanel === "primary",
+        isRecording:
+          speech.isRecording && sessionManager.focusedPanel === "primary",
         onMicToggle: handleMicToggle,
-        silenceTimerText: sessionManager.focusedPanel === "primary" ? speech.silenceTimerText : "",
+        silenceTimerText:
+          sessionManager.focusedPanel === "primary"
+            ? speech.silenceTimerText
+            : "",
         isWaitingForAI: chat.getIsWaitingForAI(activeId),
         pendingImageUrls: primaryPendingImages,
         onImagePaste: (e) => handleImagePaste(e, setPrimaryPendingImages),

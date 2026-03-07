@@ -181,6 +181,13 @@ export function useMultiChat() {
     [setIsWaitingForAI, setProcessingText, finalizeActionLog],
   );
 
+  const setTimeline = useCallback(
+    (sessionId: string, items: TimelineItem[]) => {
+      setTimelines((prev) => ({ ...prev, [sessionId]: items }));
+    },
+    [],
+  );
+
   const removeSessionData = useCallback((sessionId: string) => {
     setTimelines((prev) => {
       const next = { ...prev };
@@ -205,6 +212,7 @@ export function useMultiChat() {
     finalizeAiMessage,
     addToolAction,
     finalizeActionLog,
+    setTimeline,
     resetStreamState,
     removeSessionData,
   };

@@ -1,14 +1,17 @@
 import { useCallback, useRef } from "react";
-import { useSSE } from "./use-sse";
-import type { useMultiChat } from "./use-multi-chat";
 import type { ModelId, ServerMessage } from "../types/messages";
+import type { useMultiChat } from "./use-multi-chat";
+import { useSSE } from "./use-sse";
 
 interface UseChatStreamOptions {
   chat: ReturnType<typeof useMultiChat>;
   getActiveSessionId: () => string;
 }
 
-export function useChatStream({ chat, getActiveSessionId }: UseChatStreamOptions) {
+export function useChatStream({
+  chat,
+  getActiveSessionId,
+}: UseChatStreamOptions) {
   const sendingSessionIdRef = useRef<string | null>(null);
 
   const getSessionId = useCallback(
