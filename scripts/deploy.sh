@@ -136,4 +136,15 @@ wait_for_server 5173
 echo "Server restarted (backend: 8000, frontend: 5173)."
 echo ""
 
+echo "=== Step 9: Worktree cleanup ==="
+if [ "$REPO_ROOT" != "$MAIN_REPO" ]; then
+    git -C "$MAIN_REPO" worktree remove "$REPO_ROOT" --force
+    echo "Worktree removed: $REPO_ROOT"
+    echo ""
+    echo ">>> cd $MAIN_REPO <<<"
+else
+    echo "Main repo - no worktree to clean up."
+fi
+echo ""
+
 echo "=== ALL STEPS COMPLETE ==="

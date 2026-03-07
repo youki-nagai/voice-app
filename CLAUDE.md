@@ -30,8 +30,10 @@ make deploy BRANCH=<branch-name> MSG="<commit-message>"
 5. developに戻る
 6. サーバー再起動
 7. E2Eテスト
+8. ワークツリー自動削除（ワークツリー内で実行した場合）
 
-ワークツリーの削除はセッション終了時に Claude Code が自動で行う。
+**`make deploy` 完了後、出力末尾の `>>> cd <path> <<<` に従ってメインリポジトリに cd しろ。**
+ワークツリーは deploy が自動削除するため、CWD が無効になる。cd しないと以降のコマンドが全て失敗する。
 
 途中で失敗したらスクリプトが即座に停止する（`set -euo pipefail`）。
 失敗原因を修正してから再度 `make deploy` を実行しろ。
