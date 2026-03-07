@@ -1,3 +1,5 @@
+import type { ModelId } from "./messages";
+
 export interface GitCommandPattern {
   patterns: string[];
   action: GitAction;
@@ -119,7 +121,7 @@ export function detectGitCommand(text: string): GitAction | null {
   return null;
 }
 
-export function detectModelCommand(text: string): string | null {
+export function detectModelCommand(text: string): ModelId | null {
   const n = text.trim().toLowerCase().replace(/\s+/g, "");
   const opusPatterns = [
     "opusに",
@@ -136,6 +138,15 @@ export function detectModelCommand(text: string): string | null {
     if (n.includes(p)) return "claude-sonnet-4-6";
   }
   return null;
+}
+
+const MODEL_LABELS: Record<ModelId, string> = {
+  "claude-opus-4-6": "Opus",
+  "claude-sonnet-4-6": "Sonnet",
+};
+
+export function getModelLabel(model: ModelId): string {
+  return MODEL_LABELS[model];
 }
 
 export function extractBranchName(text: string): string {

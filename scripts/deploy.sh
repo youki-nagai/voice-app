@@ -79,9 +79,10 @@ CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 if [ "$CURRENT_BRANCH" = "$BRANCH" ]; then
     echo "Already on branch $BRANCH"
 else
-    git checkout -b "$BRANCH"
+    # deploy.sh内でテスト・lint・E2Eは実行済みのため、lefthookのworktreeチェックをスキップ
+    LEFTHOOK=0 git checkout -b "$BRANCH"
 fi
-git merge origin/develop --no-edit
+LEFTHOOK=0 git merge origin/develop --no-edit
 git add -A
 # deploy.sh内でテスト・lint・E2Eは実行済みのため、lefthookの重複チェックをスキップ
 LEFTHOOK=0 git commit -m "$MESSAGE
@@ -99,7 +100,7 @@ echo ""
 
 echo "=== Step 6: Back to develop ==="
 if [ "$REPO_ROOT" = "$MAIN_REPO" ]; then
-    git checkout develop
+    LEFTHOOK=0 git checkout develop
     git pull origin develop
 else
     echo "Pulling develop in main repo..."
