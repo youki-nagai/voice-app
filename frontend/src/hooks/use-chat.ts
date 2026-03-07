@@ -57,7 +57,7 @@ export function useChat() {
         ...prev,
         {
           kind: "message" as const,
-          data: { id: nextId(), type: "ai" as const, text: chunk },
+          data: { id: nextId(), type: "ai" as const, text: chunk.trimStart() },
         },
       ];
     });
