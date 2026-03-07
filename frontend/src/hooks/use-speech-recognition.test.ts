@@ -16,6 +16,8 @@ class MockSpeechRecognition {
 beforeEach(() => {
   (window as unknown as Record<string, unknown>).webkitSpeechRecognition =
     MockSpeechRecognition;
+  vi.spyOn(document, "hasFocus").mockReturnValue(true);
+  Object.defineProperty(document, "hidden", { value: false, writable: true });
 });
 
 describe("use-speech-recognition", () => {
@@ -26,25 +28,25 @@ describe("use-speech-recognition", () => {
     expect(result.current.isRecording).toBe(false);
   });
 
-  it("starts recording when startRecording is called", () => {
+  it("starts recording when setRecordingEnabled(true) is called", () => {
     const { result } = renderHook(() =>
       useSpeechRecognition({ onSpeechComplete: vi.fn() }),
     );
     act(() => {
-      result.current.startRecording();
+      result.current.setRecordingEnabled(true);
     });
     expect(result.current.isRecording).toBe(true);
   });
 
-  it("stops recording when stopRecording is called", () => {
+  it("stops recording when setRecordingEnabled(false) is called", () => {
     const { result } = renderHook(() =>
       useSpeechRecognition({ onSpeechComplete: vi.fn() }),
     );
     act(() => {
-      result.current.startRecording();
+      result.current.setRecordingEnabled(true);
     });
     act(() => {
-      result.current.stopRecording();
+      result.current.setRecordingEnabled(false);
     });
     expect(result.current.isRecording).toBe(false);
   });
