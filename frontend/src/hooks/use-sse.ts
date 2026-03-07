@@ -53,7 +53,7 @@ export function useSSE({ onMessage, onError, onRetry }: UseSSEOptions) {
               if (trimmed.startsWith("data: ")) {
                 try {
                   const data: ServerMessage = JSON.parse(trimmed.slice(6));
-                  if (data.type === "keepalive") return;
+                  if (data.type === "keepalive") continue;
                   onMessage(data);
                 } catch (e) {
                   console.error("JSON parse error:", e, trimmed);
