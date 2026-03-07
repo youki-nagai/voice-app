@@ -33,21 +33,21 @@ describe("icon-button", () => {
     expect(onClick).not.toHaveBeenCalled();
   });
 
-  it("applies active class when active", () => {
+  it("applies active styling when active with mic variant", () => {
     render(
-      <IconButton aria-label="test" active>
+      <IconButton aria-label="test" active variant="mic">
         Click
       </IconButton>,
     );
-    expect(screen.getByRole("button")).toHaveClass("active");
+    expect(screen.getByRole("button").className).toContain("border-red-500");
   });
 
-  it("applies variant class", () => {
+  it("applies variant styling", () => {
     render(
       <IconButton aria-label="test" variant="mic">
         Click
       </IconButton>,
     );
-    expect(screen.getByRole("button")).toHaveClass("mic");
+    expect(screen.getByRole("button").className).toContain("rounded-full");
   });
 });

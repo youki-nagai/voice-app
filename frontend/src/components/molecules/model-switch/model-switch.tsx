@@ -1,5 +1,5 @@
+import { cn } from "@/lib/utils";
 import type { ModelId } from "../../../types/messages";
-import "./model-switch.css";
 
 interface ModelSwitchProps {
   selectedModel: ModelId;
@@ -16,12 +16,15 @@ export function ModelSwitch({
   onModelChange,
 }: ModelSwitchProps) {
   return (
-    <div className="model-switch">
+    <div className="flex items-center overflow-hidden rounded-md border border-zinc-700 bg-zinc-900">
       {MODELS.map(({ id, label }) => (
         <button
           type="button"
           key={id}
-          className={selectedModel === id ? "active" : ""}
+          className={cn(
+            "border-0 bg-transparent px-2.5 py-1 text-xs text-zinc-600 transition-colors hover:text-zinc-400",
+            selectedModel === id && "bg-blue-950 text-blue-200",
+          )}
           onClick={() => onModelChange(id)}
         >
           {label}

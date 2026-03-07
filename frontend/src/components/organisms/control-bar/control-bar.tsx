@@ -1,7 +1,7 @@
+import { X } from "lucide-react";
 import { IconButton } from "../../atoms/icon-button/icon-button";
 import { MicIcon, SendIcon } from "../../atoms/icons";
 import { TextInput } from "../../atoms/text-input/text-input";
-import "./control-bar.css";
 
 interface ControlBarProps {
   textValue: string;
@@ -35,18 +35,22 @@ export function ControlBar({
   };
 
   return (
-    <div className="control-bar">
-      <div className="input-section">
+    <div className="flex items-center gap-4 border-t border-border bg-zinc-950 px-5 py-4">
+      <div className="flex flex-1 items-center gap-3 rounded-3xl border border-zinc-700 bg-zinc-900 px-4 py-2">
         {pendingImageUrl && (
-          <span className="image-preview-container">
-            <img src={pendingImageUrl} alt="添付画像" />
+          <span className="relative mr-2 inline-block">
+            <img
+              src={pendingImageUrl}
+              alt="添付画像"
+              className="max-h-9 rounded-md border border-zinc-600 align-middle"
+            />
             <button
               type="button"
-              className="image-preview-remove"
+              className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white"
               title="画像を削除"
               onClick={onImageRemove}
             >
-              &times;
+              <X className="h-2.5 w-2.5" />
             </button>
           </span>
         )}
@@ -63,22 +67,26 @@ export function ControlBar({
           onClick={handleSend}
           disabled={!textValue.trim() || isWaitingForAI}
         >
-          <SendIcon />
+          <SendIcon className="h-4 w-4" />
         </IconButton>
       </div>
 
-      <div className="voice-section">
-        <div className="voice-control">
-          <span className="silence-timer">{silenceTimerText}</span>
+      <div className="flex items-center gap-2">
+        <div className="flex flex-col items-center gap-0.5">
+          <span className="min-w-[60px] text-center text-[11px] text-zinc-600">
+            {silenceTimerText}
+          </span>
           <IconButton
             variant="mic"
             title="音声入力"
             active={isRecording}
             onClick={onMicToggle}
           >
-            <MicIcon />
+            <MicIcon className="h-5 w-5" />
           </IconButton>
-          <span className="silence-info">1秒の沈黙で送信</span>
+          <span className="text-center text-[10px] text-zinc-500">
+            1秒の沈黙で送信
+          </span>
         </div>
       </div>
     </div>

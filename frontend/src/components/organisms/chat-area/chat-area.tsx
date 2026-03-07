@@ -3,7 +3,6 @@ import type { TimelineItem } from "../../../types/messages";
 import { Spinner } from "../../atoms/spinner/spinner";
 import { ChatMessage } from "../../molecules/chat-message/chat-message";
 import { ActionLog } from "../action-log/action-log";
-import "./chat-area.css";
 
 interface ChatAreaProps {
   timeline: TimelineItem[];
@@ -20,7 +19,11 @@ export function ChatArea({ timeline }: ChatAreaProps) {
   }, [timeline]);
 
   return (
-    <div className="chat-area" ref={chatRef} data-testid="chat-area">
+    <div
+      className="flex flex-1 flex-col gap-2 overflow-y-auto px-5 py-4"
+      ref={chatRef}
+      data-testid="chat-area"
+    >
       {timeline.map((item) => {
         switch (item.kind) {
           case "message":
@@ -43,7 +46,7 @@ export function ChatArea({ timeline }: ChatAreaProps) {
             return (
               <div
                 key={`processing-${item.text}`}
-                className="message system processing"
+                className="flex items-center justify-center gap-2 self-center rounded-lg bg-orange-950 px-3.5 py-2.5 text-xs text-amber-500"
               >
                 <Spinner />
                 <span>{item.text}</span>
