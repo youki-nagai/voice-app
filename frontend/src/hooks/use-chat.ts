@@ -14,15 +14,18 @@ export function useChat() {
   const [timeline, setTimeline] = useState<TimelineItem[]>([]);
   const isStreamingRef = useRef(false);
 
-  const addMessage = useCallback((text: string, type: ChatMessageType) => {
-    setTimeline((prev) => {
-      const filtered = prev.filter((item) => item.kind !== "processing");
-      return [
-        ...filtered,
-        { kind: "message", data: { id: nextId(), type, text } },
-      ];
-    });
-  }, []);
+  const addMessage = useCallback(
+    (text: string, type: ChatMessageType, imageUrl?: string) => {
+      setTimeline((prev) => {
+        const filtered = prev.filter((item) => item.kind !== "processing");
+        return [
+          ...filtered,
+          { kind: "message", data: { id: nextId(), type, text, imageUrl } },
+        ];
+      });
+    },
+    [],
+  );
 
   const setProcessingText = useCallback((text: string | null) => {
     setTimeline((prev) => {
