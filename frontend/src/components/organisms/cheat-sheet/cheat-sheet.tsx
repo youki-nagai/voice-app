@@ -65,8 +65,16 @@ const sections: SheetSection[] = [
     icon: <MessageSquarePlus className="h-4 w-4" />,
     title: "チャット管理",
     items: [
-      { label: "＋ ボタン", description: "新しいチャットセッションを追加" },
-      { label: "タブクリック", description: "セッション切り替え" },
+      {
+        label: "＋ ボタン",
+        description: "新しいチャットセッションを追加",
+        voice: "「新しいチャット」「チャット追加」",
+      },
+      {
+        label: "タブクリック",
+        description: "セッション切り替え",
+        voice: "「チャット1に」「次のチャット」「前のチャット」",
+      },
       { label: "× ボタン", description: "セッションを閉じる" },
     ],
   },
@@ -74,7 +82,11 @@ const sections: SheetSection[] = [
     icon: <Keyboard className="h-4 w-4" />,
     title: "キーボード",
     items: [
-      { label: "Cmd + /", description: "このチートシートの開閉" },
+      {
+        label: "Cmd + /",
+        description: "このチートシートの開閉",
+        voice: "「使い方」「ヘルプ」「チートシート」",
+      },
     ],
   },
 ];

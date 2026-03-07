@@ -27,3 +27,55 @@ const MODEL_LABELS: Record<ModelId, string> = {
 export function getModelLabel(model: ModelId): string {
   return MODEL_LABELS[model];
 }
+
+export type AppCommand =
+  | { type: "new-session" }
+  | { type: "switch-session"; target: number | "next" | "prev" }
+  | { type: "toggle-cheat-sheet" };
+
+function normalizeFullWidthDigits(s: string): string {
+  return s.replace(/[０-９]/g, (ch) =>
+    String.fromCharCode(ch.charCodeAt(0) - 0xfee0),
+  );
+}
+
+export function detectAppCommand(text: string): AppCommand | null {
+  const n = normalizeFullWidthDigits(
+    text.trim().toLowerCase().replace(/\s+/g, ""),
+  );
+
+  // New session
+  if (
+    n.includes("新しいチャット") ||
+    n.includes("新規チャット") ||
+    n.includes("チャット追加") ||
+    n.includes("チャットを追加")
+  ) {
+    return { type: "new-session" };
+  }
+
+  // Switch session by number: "チャット1に", "チャット2に切り替え"
+  const switchMatch = n.match(/チャット(\d+)に/i);
+  if (switchMatch) {
+    return { type: "switch-session", target: Number(switchMatch[1]) };
+  }
+
+  // Switch session: next/prev
+  if (n.includes("次のチャット")) {
+    return { type: "switch-session", target: "next" };
+  }
+  if (n.includes("前のチャット")) {
+    return { type: "switch-session", target: "prev" };
+  }
+
+  // Cheat sheet
+  if (
+    n.includes("使い方") ||
+    n.includes("ヘルプ") ||
+    n.includes("チートシート")
+  ) {
+    return { type: "toggle-cheat-sheet" };
+  }
+
+  return null;
+}
