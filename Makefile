@@ -2,26 +2,26 @@
 
 install:
 	cd backend && uv sync
-	cd frontend && npm install
+	cd frontend && bun install
 
 build-frontend:
-	cd frontend && npm run build
+	cd frontend && bun run build
 
 dev:
-	cd frontend && npm run build
+	cd frontend && bun run build
 	cd backend && uv run uvicorn app.main:app --reload --reload-dir . --reload-dir ../frontend/dist --host 0.0.0.0 --port 8000 --env-file ../.env
 
 test:
 	cd backend && uv run pytest
-	cd frontend && npm test
+	cd frontend && bun run test
 
 lint:
 	cd backend && uv run ruff check . && uv run ruff format --check .
-	cd frontend && npm run lint
+	cd frontend && bun run lint
 
 format:
 	cd backend && uv run ruff check --fix . && uv run ruff format .
-	cd frontend && npm run format
+	cd frontend && bun run format
 
 verify:
 	@test -n "$(E2E_BASE_URL)" || (echo "ERROR: E2E_BASE_URL is required. Usage: make verify E2E_BASE_URL=http://localhost:<port>" && exit 1)

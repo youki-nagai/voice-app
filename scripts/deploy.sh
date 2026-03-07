@@ -46,7 +46,7 @@ wait_for_server() {
 }
 
 echo "=== Step 0: Build frontend ==="
-cd frontend && npm install && npm run build && cd ..
+cd frontend && bun install && bun run build && cd ..
 echo ""
 
 echo "=== Step 1: Unit tests ==="
@@ -108,7 +108,7 @@ fi
 echo ""
 
 echo "=== Step 7: Restart server (port: 8000) ==="
-cd frontend && npm run build && cd ..
+cd frontend && bun run build && cd ..
 pkill -f "uvicorn app.main:app" 2>/dev/null || true
 sleep 2
 cd backend

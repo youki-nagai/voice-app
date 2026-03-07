@@ -19,15 +19,15 @@ pre-commit:
       run: cd backend && uv run pytest tests/ -x -q --ignore=tests/test_e2e.py
       fail_text: "Backend tests failed."
     filename-check:
-      run: npx @ls-lint/ls-lint
+      run: bunx @ls-lint/ls-lint
       fail_text: "Filename naming convention violated."
     # frontend-lint:
     #   glob: "frontend/**/*"
-    #   run: cd frontend && npx biome check .
+    #   run: cd frontend && bunx biome check .
     #   fail_text: "Frontend lint checks failed."
     frontend-test:
       glob: "frontend/**/*"
-      run: cd frontend && npx vitest run
+      run: cd frontend && bunx vitest run
       fail_text: "Frontend tests failed."
 
 pre-push:
