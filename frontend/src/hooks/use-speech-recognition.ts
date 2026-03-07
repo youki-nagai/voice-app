@@ -22,6 +22,22 @@ export function useSpeechRecognition({
   const enabledRef = useRef(false);
   const visibleRef = useRef(!document.hidden && document.hasFocus());
 
+  const onSpeechCompleteRef = useRef(onSpeechComplete);
+  const onInterimUpdateRef = useRef(onInterimUpdate);
+  const onErrorRef = useRef(onError);
+
+  useEffect(() => {
+    onSpeechCompleteRef.current = onSpeechComplete;
+  }, [onSpeechComplete]);
+
+  useEffect(() => {
+    onInterimUpdateRef.current = onInterimUpdate;
+  }, [onInterimUpdate]);
+
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
+
   const SpeechRecognitionAPI =
     typeof window !== "undefined"
       ? (window as unknown as Record<string, unknown>).SpeechRecognition ||
@@ -36,10 +52,10 @@ export function useSpeechRecognition({
       setSilenceTimerText("");
       return;
     }
-    onSpeechComplete(text);
+    onSpeechCompleteRef.current(text);
     finalTranscriptRef.current = "";
     setSilenceTimerText("送信済み");
-  }, [onSpeechComplete]);
+  }, []);
 
   const resetSilenceTimer = useCallback(() => {
     if (silenceTimeoutRef.current) {
@@ -77,7 +93,7 @@ export function useSpeechRecognition({
         finalTranscriptRef.current += finalPart;
       }
 
-      onInterimUpdate?.(finalTranscriptRef.current + interim);
+      onInterimUpdateRef.current?.(finalTranscriptRef.current + interim);
       resetSilenceTimer();
     };
 
@@ -103,11 +119,11 @@ export function useSpeechRecognition({
       ) {
         return;
       }
-      onError?.(`音声認識エラー: ${event.error}`);
+      onErrorRef.current?.(`音声認識エラー: ${event.error}`);
     };
 
     return recognition;
-  }, [SpeechRecognitionAPI, onInterimUpdate, onError, resetSilenceTimer]);
+  }, [SpeechRecognitionAPI, resetSilenceTimer]);
 
   const startActualRecognition = useCallback(() => {
     if (!recognitionRef.current) {
