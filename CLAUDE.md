@@ -36,6 +36,16 @@ make deploy BRANCH=<branch-name> MSG="<commit-message>"
 途中で失敗したらスクリプトが即座に停止する（`set -euo pipefail`）。
 失敗原因を修正してから再度 `make deploy` を実行しろ。
 
+## テスト哲学
+
+Google "Software Engineering at Google" に準拠。詳細は `.claude/skills/test-philosophy/SKILL.md` を参照。
+
+- テストの最大の価値は「変更を可能にすること」
+- 80% Unit / 15% Integration / 5% E2E
+- 壊れて困る振る舞いだけテストを書け（Beyonce Rule）
+- UI の存在確認・CSS クラス検証・フレームワーク基本動作のテストは書くな
+- ステートテスト > インタラクションテスト。モック乱用禁止
+
 ## 技術スタック
 
 - **Backend**: FastAPI (Python 3.13+)
