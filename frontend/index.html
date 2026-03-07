@@ -1321,6 +1321,22 @@
         // 初期化
         initializeApp();
         setupSpeechRecognition();
+
+        // ブラウザが非アクティブになったら音声認識を一時停止、アクティブに戻ったら再開
+        let wasRecordingBeforeHidden = false;
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                if (isRecording) {
+                    wasRecordingBeforeHidden = true;
+                    stopRecording();
+                }
+            } else {
+                if (wasRecordingBeforeHidden) {
+                    wasRecordingBeforeHidden = false;
+                    startRecording();
+                }
+            }
+        });
     </script>
 </body>
 </html>
