@@ -1,0 +1,65 @@
+.action-log {
+  margin: 4px 0;
+}
+
+.action-log details {
+  background: #111;
+  border: 1px solid #222;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.action-log summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #aaa;
+  user-select: none;
+  list-style: none;
+}
+
+.action-log summary::-webkit-details-marker {
+  display: none;
+}
+
+.action-log-chevron {
+  font-size: 8px;
+  transition: transform 0.2s;
+  color: #666;
+}
+
+details[open] .action-log-chevron {
+  transform: rotate(90deg);
+}
+
+.action-log-title {
+  font-weight: 500;
+  color: #ccc;
+}
+
+.action-log-current {
+  color: #888;
+  font-size: 12px;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.action-count {
+  background: #2a2a2a;
+  color: #888;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.action-list {
+  border-top: 1px solid #222;
+  padding: 4px 0;
+}
