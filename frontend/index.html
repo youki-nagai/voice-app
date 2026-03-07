@@ -938,10 +938,26 @@
         document.getElementById('model-switch').addEventListener('click', (e) => {
             const button = e.target.closest('button[data-model]');
             if (!button) return;
-            selectedModel = button.dataset.model;
-            document.querySelectorAll('#model-switch button').forEach(b => b.classList.remove('active'));
-            button.classList.add('active');
+            switchModel(button.dataset.model);
         });
+
+        function switchModel(model) {
+            selectedModel = model;
+            document.querySelectorAll('#model-switch button').forEach(b => {
+                b.classList.toggle('active', b.dataset.model === model);
+            });
+            const label = model.includes('opus') ? 'Opus' : 'Sonnet';
+            addMessage(`モデル切替: ${label}`, 'system');
+        }
+
+        function detectModelCommand(text) {
+            const n = text.trim().toLowerCase().replace(/\s+/g, '');
+            const opusPatterns = ['opusに', 'オーパスに', 'おーぱすに', 'オプスに', 'おぷすに'];
+            const sonnetPatterns = ['sonnetに', 'ソネットに', 'そねっとに', 'ソネに'];
+            for (const p of opusPatterns) { if (n.includes(p)) return 'claude-opus-4-6'; }
+            for (const p of sonnetPatterns) { if (n.includes(p)) return 'claude-sonnet-4-6'; }
+            return null;
+        }
 
         // 初期化
         initializeApp();
