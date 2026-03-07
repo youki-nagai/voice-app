@@ -54,7 +54,12 @@ echo ""
 
 echo "=== Step 4: Branch → Commit → Push ==="
 git fetch origin develop
-git checkout -b "$BRANCH"
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if [ "$CURRENT_BRANCH" = "$BRANCH" ]; then
+    echo "Already on branch $BRANCH"
+else
+    git checkout -b "$BRANCH"
+fi
 git merge origin/develop --no-edit
 git add -A
 git commit -m "$MESSAGE

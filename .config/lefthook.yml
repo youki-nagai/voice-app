@@ -1,0 +1,43 @@
+# Lefthook configuration for voice-app
+# https://github.com/evilmartians/lefthook
+#
+# ロジックは全て .config/scripts/ に外部ファイルとして配置する
+# lefthook.yml にインラインでロジックを書くな
+
+pre-commit:
+  parallel: true
+  commands:
+    enforce-worktree:
+      run: ./.config/scripts/enforce-worktree.sh
+      fail_text: "worktree外でのコミットは禁止"
+    backend-lint:
+      glob: "backend/**/*"
+      run: cd backend && uv tool run ruff check .
+      fail_text: "Backend lint checks failed."
+    backend-test:
+      glob: "backend/**/*"
+      run: cd backend && uv run pytest tests/ -x -q
+      fail_text: "Backend tests failed."
+    filename-check:
+      run: npx @ls-lint/ls-lint
+      fail_text: "Filename naming convention violated."
+    # frontend-lint:
+    #   glob: "frontend/**/*"
+    #   run: cd frontend && npx biome check .
+    #   fail_text: "Frontend lint checks failed."
+    frontend-test:
+      glob: "frontend/**/*"
+      run: cd frontend && npx vitest run
+      fail_text: "Frontend tests failed."
+
+pre-push:
+  commands: {}
+
+post-checkout:
+  commands:
+    check-branch-name:
+      run: ./.config/scripts/check-branch-name.sh
+      fail_text: "Branch name must be in English and lowercase"
+    check-worktree:
+      run: ./.config/scripts/check-worktree.sh
+      fail_text: "worktree外での作業ブランチ切り替えは禁止"
