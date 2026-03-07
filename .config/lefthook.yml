@@ -16,7 +16,7 @@ pre-commit:
       fail_text: "Backend lint checks failed."
     backend-test:
       glob: "backend/**/*"
-      run: cd backend && uv run pytest tests/ -x -q
+      run: cd backend && uv run pytest tests/ -x -q --ignore=tests/test_e2e.py
       fail_text: "Backend tests failed."
     filename-check:
       run: npx @ls-lint/ls-lint

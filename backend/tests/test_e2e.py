@@ -1,14 +1,15 @@
 """
-E2Eテスト: 実際に稼働中のサーバー(localhost:8000)に対してテスト。
-`make verify` で実行。サーバーが起動していない場合はスキップされる。
+E2Eテスト: 実際に稼働中のサーバーに対してテスト。
+環境変数 E2E_BASE_URL でサーバーURLを指定する（必須）。
 """
 
 import json
+import os
 
 import httpx
 import pytest
 
-BASE_URL = "http://localhost:8000"
+BASE_URL = os.environ["E2E_BASE_URL"]
 
 
 def server_is_running():
