@@ -50,9 +50,9 @@ describe("control-bar", () => {
     expect(onMicToggle).toHaveBeenCalledOnce();
   });
 
-  it("shows mic as active when recording", () => {
+  it("applies active styling when recording", () => {
     render(<ControlBar {...defaultProps} isRecording={true} />);
-    expect(screen.getByTitle("音声入力")).toHaveClass("active");
+    expect(screen.getByTitle("音声入力").className).toContain("border-red-500");
   });
 
   it("shows silence timer text", () => {

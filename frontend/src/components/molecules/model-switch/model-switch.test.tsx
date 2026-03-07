@@ -16,10 +16,12 @@ describe("model-switch", () => {
     render(
       <ModelSwitch selectedModel="claude-opus-4-6" onModelChange={() => {}} />,
     );
-    expect(screen.getByRole("button", { name: "Opus" })).toHaveClass("active");
-    expect(screen.getByRole("button", { name: "Sonnet" })).not.toHaveClass(
-      "active",
+    expect(screen.getByRole("button", { name: "Opus" }).className).toContain(
+      "bg-blue-950",
     );
+    expect(
+      screen.getByRole("button", { name: "Sonnet" }).className,
+    ).not.toContain("bg-blue-950");
   });
 
   it("calls onModelChange when clicking a different model", async () => {

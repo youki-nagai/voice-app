@@ -5,43 +5,57 @@ import { ChatMessage } from "./chat-message";
 describe("chat-message", () => {
   it("renders user message", () => {
     render(<ChatMessage type="user" text="こんにちは" />);
-    const msg = screen.getByText("こんにちは").closest(".message");
-    expect(msg).toHaveClass("message", "user");
+    expect(screen.getByText("こんにちは")).toBeInTheDocument();
+    expect(screen.getByText("こんにちは").parentElement?.className).toContain(
+      "self-end",
+    );
   });
 
   it("renders ai message", () => {
     render(<ChatMessage type="ai" text="応答です" />);
-    const msg = screen.getByText("応答です").closest(".message");
-    expect(msg).toHaveClass("message", "ai");
+    expect(screen.getByText("応答です")).toBeInTheDocument();
+    expect(screen.getByText("応答です").parentElement?.className).toContain(
+      "self-start",
+    );
   });
 
   it("renders error message", () => {
     render(<ChatMessage type="error" text="エラー発生" />);
-    const msg = screen.getByText("エラー発生").closest(".message");
-    expect(msg).toHaveClass("message", "error");
+    expect(screen.getByText("エラー発生")).toBeInTheDocument();
+    expect(screen.getByText("エラー発生").parentElement?.className).toContain(
+      "bg-red-950",
+    );
   });
 
   it("renders system message", () => {
     render(<ChatMessage type="system" text="システム通知" />);
-    const msg = screen.getByText("システム通知").closest(".message");
-    expect(msg).toHaveClass("message", "system");
+    expect(screen.getByText("システム通知")).toBeInTheDocument();
+    expect(screen.getByText("システム通知").parentElement?.className).toContain(
+      "self-center",
+    );
   });
 
   it("renders interim message", () => {
     render(<ChatMessage type="interim" text="入力中..." />);
-    const msg = screen.getByText("入力中...").closest(".message");
-    expect(msg).toHaveClass("message", "interim");
+    expect(screen.getByText("入力中...")).toBeInTheDocument();
+    expect(screen.getByText("入力中...").parentElement?.className).toContain(
+      "italic",
+    );
   });
 
   it("renders test-pass message", () => {
     render(<ChatMessage type="test-pass" text="テスト OK" />);
-    const msg = screen.getByText("テスト OK").closest(".message");
-    expect(msg).toHaveClass("message", "test-pass");
+    expect(screen.getByText("テスト OK")).toBeInTheDocument();
+    expect(screen.getByText("テスト OK").parentElement?.className).toContain(
+      "bg-green-950",
+    );
   });
 
   it("renders commit message", () => {
     render(<ChatMessage type="commit" text="committed: fix bug" />);
-    const msg = screen.getByText("committed: fix bug").closest(".message");
-    expect(msg).toHaveClass("message", "commit");
+    expect(screen.getByText("committed: fix bug")).toBeInTheDocument();
+    expect(
+      screen.getByText("committed: fix bug").parentElement?.className,
+    ).toContain("font-mono");
   });
 });

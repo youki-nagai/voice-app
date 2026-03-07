@@ -1,4 +1,4 @@
-import "./text-input.css";
+import { Input } from "@/components/ui/input";
 
 interface TextInputProps {
   value: string;
@@ -23,9 +23,9 @@ export function TextInput({
   };
 
   return (
-    <input
+    <Input
       type="text"
-      className="text-input"
+      className="flex-1 border-0 bg-transparent text-sm text-foreground placeholder:text-zinc-600 focus-visible:ring-0"
       value={value}
       onChange={(e) => onChange(e.target.value)}
       onKeyDown={handleKeyDown}

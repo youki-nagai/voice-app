@@ -1,6 +1,5 @@
 import type { StatusDotStatus } from "../../atoms/status-dot/status-dot";
 import { StatusDot } from "../../atoms/status-dot/status-dot";
-import "./git-status-badge.css";
 
 export type GitBadgeStatus = "checking" | "ok" | "warn" | "error";
 
@@ -34,7 +33,7 @@ export function GitStatusBadge({
   return (
     <button
       type="button"
-      className="git-status"
+      className="flex items-center gap-1.5 rounded px-2 py-1 text-xs text-zinc-500 transition-colors hover:bg-zinc-900"
       title="クリックでGit状態を再チェック"
       onClick={onClick}
     >

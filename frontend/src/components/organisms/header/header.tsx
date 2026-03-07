@@ -4,7 +4,6 @@ import { StatusDot } from "../../atoms/status-dot/status-dot";
 import type { GitBadgeStatus } from "../../molecules/git-status-badge/git-status-badge";
 import { GitStatusBadge } from "../../molecules/git-status-badge/git-status-badge";
 import { ModelSwitch } from "../../molecules/model-switch/model-switch";
-import "./header.css";
 
 interface HeaderProps {
   selectedModel: ModelId;
@@ -26,9 +25,9 @@ export function Header({
   appStatusText,
 }: HeaderProps) {
   return (
-    <header className="app-header">
-      <h1>voice-app</h1>
-      <div className="header-right">
+    <header className="flex items-center justify-between border-b border-border bg-zinc-950 px-5 py-3">
+      <h1 className="text-base font-semibold text-white">voice-app</h1>
+      <div className="flex items-center gap-4">
         <ModelSwitch
           selectedModel={selectedModel}
           onModelChange={onModelChange}
@@ -38,7 +37,7 @@ export function Header({
           branchName={gitBranch}
           onClick={onGitStatusClick}
         />
-        <div className="status-indicator">
+        <div className="flex items-center gap-1.5 text-xs text-zinc-500">
           <StatusDot status={appStatus} />
           <span>{appStatusText}</span>
         </div>
