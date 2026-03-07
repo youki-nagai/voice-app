@@ -21,6 +21,17 @@ find_free_port() {
 }
 
 E2E_PORT=$(find_free_port)
+E2E_SERVER_PID=""
+
+# E2Eサーバーのクリーンアップ（テスト失敗・スクリプト中断時にも確実に停止）
+cleanup_e2e_server() {
+    if [ -n "$E2E_SERVER_PID" ]; then
+        kill "$E2E_SERVER_PID" 2>/dev/null || true
+        wait "$E2E_SERVER_PID" 2>/dev/null || true
+        E2E_SERVER_PID=""
+    fi
+}
+trap cleanup_e2e_server EXIT
 
 wait_for_server() {
     local port="$1"
@@ -59,7 +70,7 @@ echo "Server started for E2E tests (PID: ${E2E_SERVER_PID})."
 cd backend
 E2E_BASE_URL="http://localhost:${E2E_PORT}" uv run pytest tests/test_e2e.py -v
 cd ..
-kill "$E2E_SERVER_PID" 2>/dev/null || true
+cleanup_e2e_server
 echo ""
 
 echo "=== Step 4: Branch → Commit → Push ==="
