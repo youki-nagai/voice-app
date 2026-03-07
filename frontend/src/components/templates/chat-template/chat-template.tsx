@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import type { FocusedPanel } from "../../../hooks/use-session-manager";
 import type { ModelId, TimelineItem } from "../../../types/messages";
 import type { StatusDotStatus } from "../../atoms/status-dot/status-dot";
@@ -117,7 +118,7 @@ function SplitDivider({ onUnsplit }: { onUnsplit: () => void }) {
 
 export function ChatTemplate(props: ChatTemplateProps) {
   return (
-    <>
+    <TooltipProvider>
       <Header
         selectedModel={props.selectedModel}
         onModelChange={props.onModelChange}
@@ -177,6 +178,6 @@ export function ChatTemplate(props: ChatTemplateProps) {
         isOpen={props.isCheatSheetOpen}
         onClose={props.onCheatSheetToggle}
       />
-    </>
+    </TooltipProvider>
   );
 }
