@@ -157,7 +157,6 @@
         .message.system { background: #1a2a1a; align-self: center; color: #88c888; font-size: 12px; text-align: center; }
         .message.system.processing { background: #2a1e1a; color: #f59e0b; display: flex; align-items: center; justify-content: center; }
         .message.error { background: #2e1a1a; align-self: center; color: #e88888; font-size: 12px; }
-        .message.file-change { background: #1a2e2a; align-self: flex-start; color: #88c8b8; font-size: 12px; font-family: monospace; }
         .message.commit { background: #2a2e1a; align-self: center; color: #c8c888; font-size: 12px; font-family: monospace; }
         .message.test-pass { background: #1a2e1a; align-self: center; color: #88c888; font-size: 12px; font-family: monospace; }
         .message.test-fail { background: #2e1a1a; align-self: center; color: #e88888; font-size: 12px; font-family: monospace; }
@@ -383,6 +382,7 @@
         let processingElements = [];
         let isWaitingForAI = false;
         let currentAiElement = null;
+        let currentActionLog = null;
         const SILENCE_DELAY = 1000;
         let selectedModel = 'claude-opus-4-6';
 
@@ -404,15 +404,20 @@
                     statusDot.className = 'status-dot processing';
                     statusText.textContent = 'AI処理中';
                     break;
+                case 'tool_action':
+                    clearAllProcessingMessages();
+                    appendToolAction(msg.tool, msg.text);
+                    isWaitingForAI = true;
+                    statusDot.className = 'status-dot processing';
+                    statusText.textContent = 'AI処理中';
+                    break;
                 case 'ai_chunk':
                     clearAllProcessingMessages();
+                    finalizeActionLog();
                     appendToAiMessage(msg.text);
                     break;
                 case 'ai_done':
                     finalizeAiMessage();
-                    break;
-                case 'file_change':
-                    addMessage(`${msg.action}: ${msg.path}`, 'file-change');
                     break;
                 case 'test_result':
                     if (msg.success) {
@@ -437,11 +442,13 @@
                 case 'complete':
                     isWaitingForAI = false;
                     clearAllProcessingMessages();
+                    finalizeActionLog();
                     updateStatusAfterAI();
                     break;
                 case 'error':
                     isWaitingForAI = false;
                     clearAllProcessingMessages();
+                    finalizeActionLog();
                     addMessage(msg.text, 'error');
                     updateStatusAfterAI();
                     break;
@@ -503,6 +510,54 @@
                 }
             });
             processingElements = [];
+        }
+
+        function appendToolAction(tool, text) {
+            if (!currentActionLog) {
+                currentActionLog = document.createElement('div');
+                currentActionLog.className = 'action-log';
+                const details = document.createElement('details');
+                details.open = true;
+                const summary = document.createElement('summary');
+                const spinnerSpan = document.createElement('span');
+                spinnerSpan.className = 'spinner';
+                summary.appendChild(spinnerSpan);
+                const labelSpan = document.createElement('span');
+                labelSpan.textContent = 'Actions';
+                summary.appendChild(labelSpan);
+                const countSpan = document.createElement('span');
+                countSpan.className = 'action-count';
+                countSpan.textContent = '0';
+                summary.appendChild(countSpan);
+                details.appendChild(summary);
+                const list = document.createElement('div');
+                list.className = 'action-list';
+                details.appendChild(list);
+                currentActionLog.appendChild(details);
+                chat.appendChild(currentActionLog);
+            }
+
+            const list = currentActionLog.querySelector('.action-list');
+            const item = document.createElement('div');
+            item.className = `action-item tool-${tool.toLowerCase()}`;
+            item.textContent = text;
+            list.appendChild(item);
+
+            const countSpan = currentActionLog.querySelector('.action-count');
+            const count = list.children.length;
+            countSpan.textContent = count;
+
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function finalizeActionLog() {
+            if (currentActionLog) {
+                const details = currentActionLog.querySelector('details');
+                details.open = false;
+                const spinner = currentActionLog.querySelector('.spinner');
+                if (spinner) spinner.remove();
+                currentActionLog = null;
+            }
         }
 
         function appendToAiMessage(chunk) {
