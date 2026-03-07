@@ -46,6 +46,8 @@ wait_for_server() {
 
 echo "=== Step 0: Ensure PostgreSQL is running ==="
 docker compose -f "$REPO_ROOT/docker-compose.yml" up -d postgres
+eval "$("$REPO_ROOT/scripts/db-url.sh")"
+echo "DATABASE_URL=$DATABASE_URL"
 echo ""
 
 echo "=== Step 1: Build frontend ==="
@@ -113,6 +115,8 @@ echo ""
 
 echo "=== Step 8: Restart server (port: 8000 + 5173) ==="
 cd "$MAIN_REPO"
+# メインリポの docker-compose.yml から DATABASE_URL を再取得
+eval "$("$MAIN_REPO/scripts/db-url.sh")"
 # 既存のdev serverプロセスをすべて停止
 pkill -f "uvicorn app.main:app" 2>/dev/null || true
 pkill -f "vite" 2>/dev/null || true
