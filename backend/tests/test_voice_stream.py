@@ -1,10 +1,10 @@
 import base64
 import json
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 from fastapi.testclient import TestClient
 
-from app.dependencies import get_claude_code_service
+from app.dependencies import get_chat_repository, get_claude_code_service
 from app.main import app
 
 
@@ -25,6 +25,18 @@ def _parse_sse_events(text: str) -> list[dict]:
     return events
 
 
+def _make_mock_chat_repo():
+    mock_repo = MagicMock()
+    mock_thread = MagicMock()
+    mock_thread.id = "test-thread-id"
+    mock_thread.title = None
+    mock_repo.get_or_create_thread = AsyncMock(return_value=mock_thread)
+    mock_repo.add_message = AsyncMock()
+    mock_repo.update_thread_title = AsyncMock()
+    mock_repo.commit = AsyncMock()
+    return mock_repo
+
+
 class TestVoiceStream:
     def setup_method(self):
         self._client = TestClient(app)
@@ -34,6 +46,7 @@ class TestVoiceStream:
 
     def _override(self, mock_claude_code):
         app.dependency_overrides[get_claude_code_service] = lambda: mock_claude_code
+        app.dependency_overrides[get_chat_repository] = _make_mock_chat_repo
 
     def test_given_valid_instruction_when_stream_then_returns_sse_events(self):
         mock_cc = MagicMock()
