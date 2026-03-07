@@ -3,7 +3,10 @@ import { useChatStream } from "../../../hooks/use-chat-stream";
 import { useKeyboardShortcut } from "../../../hooks/use-keyboard-shortcut";
 import { useMultiChat } from "../../../hooks/use-multi-chat";
 import { useSessionManager } from "../../../hooks/use-session-manager";
-import { useSpeechRecognition } from "../../../hooks/use-speech-recognition";
+import {
+  DEFAULT_SILENCE_DELAY,
+  useSpeechRecognition,
+} from "../../../hooks/use-speech-recognition";
 import {
   detectAppCommand,
   detectModelCommand,
@@ -35,6 +38,12 @@ export function ChatPage() {
   >([]);
   const [interimText, setInterimText] = useState<string | null>(null);
   const [isCheatSheetOpen, setIsCheatSheetOpen] = useState(false);
+  const [silenceDelayMs, setSilenceDelayMs] = useState(DEFAULT_SILENCE_DELAY);
+
+  const silenceDelaySeconds = silenceDelayMs / 1000;
+  const handleSilenceDelayChange = useCallback((seconds: number) => {
+    setSilenceDelayMs(seconds * 1000);
+  }, []);
 
   const toggleCheatSheet = useCallback(() => {
     setIsCheatSheetOpen((prev) => !prev);
@@ -99,9 +108,23 @@ export function ChatPage() {
         case "toggle-cheat-sheet":
           toggleCheatSheet();
           return true;
+        case "set-silence-delay":
+          handleSilenceDelayChange(appCmd.seconds);
+          chat.addMessage(
+            sid,
+            `沈黙時間を${appCmd.seconds}秒に変更しました`,
+            "system",
+          );
+          return true;
       }
     },
-    [chat, sessionManager, switchModel, toggleCheatSheet],
+    [
+      chat,
+      sessionManager,
+      switchModel,
+      toggleCheatSheet,
+      handleSilenceDelayChange,
+    ],
   );
 
   const sendMessage = useCallback(
@@ -156,6 +179,7 @@ export function ChatPage() {
     onInterimUpdate: (text) => setInterimText(text),
     onError: (error) =>
       chat.addMessage(focusedIdRef.current, error, "error"),
+    silenceDelay: silenceDelayMs,
   });
 
   const handleMicToggle = useCallback(() => {
@@ -281,6 +305,8 @@ export function ChatPage() {
         onImagePaste: (e) => handleImagePaste(e, setPrimaryPendingImages),
         onImageRemove: (index) =>
           setPrimaryPendingImages((prev) => prev.filter((_, i) => i !== index)),
+        silenceDelaySeconds,
+        onSilenceDelayChange: handleSilenceDelayChange,
       }}
       secondary={
         secondaryId
@@ -305,6 +331,8 @@ export function ChatPage() {
                 setSecondaryPendingImages((prev) =>
                   prev.filter((_, i) => i !== index),
                 ),
+              silenceDelaySeconds,
+              onSilenceDelayChange: handleSilenceDelayChange,
             }
           : null
       }

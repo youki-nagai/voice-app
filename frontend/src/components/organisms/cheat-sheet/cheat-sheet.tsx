@@ -26,7 +26,11 @@ const sections: SheetSection[] = [
     note: "マイクONで話すだけ。全ての指示を音声で出せます。",
     items: [
       { label: "マイクボタン", description: "音声入力の開始 / 停止" },
-      { label: "1秒の沈黙", description: "自動でメッセージ送信" },
+      {
+        label: "沈黙で自動送信",
+        description: "マイク横の±ボタンで秒数を調整",
+        voice: "「待ち時間3秒」「沈黙2秒」",
+      },
       {
         label: "自由な指示",
         description: "話した内容がそのままAIへの指示になる",
