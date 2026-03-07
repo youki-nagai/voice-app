@@ -43,7 +43,7 @@ export function ChatPage() {
   >([]);
   const [interimText, setInterimText] = useState<string | null>(null);
   const [isCheatSheetOpen, setIsCheatSheetOpen] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [silenceDelayMs, setSilenceDelayMs] = useState(DEFAULT_SILENCE_DELAY);
 
   const silenceDelaySeconds = silenceDelayMs / 1000;
