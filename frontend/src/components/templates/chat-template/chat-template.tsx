@@ -19,6 +19,8 @@ interface PanelProps {
   pendingImageUrls: string[];
   onImagePaste: (e: React.ClipboardEvent) => void;
   onImageRemove: (index: number) => void;
+  silenceDelaySeconds: number;
+  onSilenceDelayChange: (seconds: number) => void;
 }
 
 interface ChatTemplateProps {
@@ -87,6 +89,8 @@ function ChatPanel({
         pendingImageUrls={panel.pendingImageUrls}
         onImagePaste={panel.onImagePaste}
         onImageRemove={panel.onImageRemove}
+        silenceDelaySeconds={panel.silenceDelaySeconds}
+        onSilenceDelayChange={panel.onSilenceDelayChange}
       />
     </div>
   );
@@ -142,6 +146,8 @@ export function ChatTemplate(props: ChatTemplateProps) {
             pendingImageUrls={props.primary.pendingImageUrls}
             onImagePaste={props.primary.onImagePaste}
             onImageRemove={props.primary.onImageRemove}
+            silenceDelaySeconds={props.primary.silenceDelaySeconds}
+            onSilenceDelayChange={props.primary.onSilenceDelayChange}
           />
         </>
       )}

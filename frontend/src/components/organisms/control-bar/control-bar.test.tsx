@@ -15,6 +15,8 @@ describe("control-bar", () => {
     pendingImageUrls: [] as string[],
     onImagePaste: vi.fn(),
     onImageRemove: vi.fn(),
+    silenceDelaySeconds: 1,
+    onSilenceDelayChange: vi.fn(),
   };
 
   it("renders text input", () => {

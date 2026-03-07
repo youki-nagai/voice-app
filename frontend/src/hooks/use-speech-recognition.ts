@@ -1,18 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useCallbackRef } from "./use-callback-ref";
 
-const SILENCE_DELAY = 1000;
+export const DEFAULT_SILENCE_DELAY = 1000;
 
 interface SpeechRecognitionOptions {
   onSpeechComplete: (transcript: string) => void;
   onInterimUpdate?: (text: string) => void;
   onError?: (error: string) => void;
+  silenceDelay?: number;
 }
 
 export function useSpeechRecognition({
   onSpeechComplete,
   onInterimUpdate,
   onError,
+  silenceDelay = DEFAULT_SILENCE_DELAY,
 }: SpeechRecognitionOptions) {
   const [isRecording, setIsRecording] = useState(false);
   const [silenceTimerText, setSilenceTimerText] = useState("");
@@ -22,6 +24,8 @@ export function useSpeechRecognition({
   const silenceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const enabledRef = useRef(false);
   const visibleRef = useRef(!document.hidden && document.hasFocus());
+  const silenceDelayRef = useRef(silenceDelay);
+  silenceDelayRef.current = silenceDelay;
 
   const onSpeechCompleteRef = useCallbackRef(onSpeechComplete);
   const onInterimUpdateRef = useCallbackRef(onInterimUpdate);
@@ -53,7 +57,7 @@ export function useSpeechRecognition({
     setSilenceTimerText("話し中...");
     silenceTimeoutRef.current = setTimeout(() => {
       sendVoiceComplete();
-    }, SILENCE_DELAY);
+    }, silenceDelayRef.current);
   }, [sendVoiceComplete]);
 
   const setupRecognition = useCallback(() => {

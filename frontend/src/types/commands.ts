@@ -31,7 +31,8 @@ export function getModelLabel(model: ModelId): string {
 export type AppCommand =
   | { type: "new-session" }
   | { type: "switch-session"; target: number | "next" | "prev" }
-  | { type: "toggle-cheat-sheet" };
+  | { type: "toggle-cheat-sheet" }
+  | { type: "set-silence-delay"; seconds: number };
 
 function normalizeFullWidthDigits(s: string): string {
   return s.replace(/[０-９]/g, (ch) =>
@@ -66,6 +67,15 @@ export function detectAppCommand(text: string): AppCommand | null {
   }
   if (n.includes("前のチャット")) {
     return { type: "switch-session", target: "prev" };
+  }
+
+  // Silence delay: "待ち時間3秒", "沈黙2秒", "待ち時間を5秒に"
+  const delayMatch = n.match(/(?:待ち時間|沈黙|無音)(?:を)?(\d+(?:\.\d+)?)秒/);
+  if (delayMatch) {
+    const seconds = Number(delayMatch[1]);
+    if (seconds >= 0.5 && seconds <= 10) {
+      return { type: "set-silence-delay", seconds };
+    }
   }
 
   // Cheat sheet

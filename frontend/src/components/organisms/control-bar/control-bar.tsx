@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { Minus, Plus, X } from "lucide-react";
 import { IconButton } from "../../atoms/icon-button/icon-button";
 import { MicIcon, SendIcon } from "../../atoms/icons";
 import { TextInput } from "../../atoms/text-input/text-input";
@@ -14,6 +14,8 @@ interface ControlBarProps {
   pendingImageUrls: string[];
   onImagePaste: (e: React.ClipboardEvent) => void;
   onImageRemove: (index: number) => void;
+  silenceDelaySeconds: number;
+  onSilenceDelayChange: (seconds: number) => void;
 }
 
 export function ControlBar({
@@ -27,6 +29,8 @@ export function ControlBar({
   pendingImageUrls,
   onImagePaste,
   onImageRemove,
+  silenceDelaySeconds,
+  onSilenceDelayChange,
 }: ControlBarProps) {
   const handleSend = () => {
     if (textValue.trim() && !isWaitingForAI) {
@@ -84,9 +88,33 @@ export function ControlBar({
           >
             <MicIcon className="h-5 w-5" />
           </IconButton>
-          <span className="text-center text-[10px] text-muted-foreground">
-            1秒の沈黙で送信
-          </span>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              title="沈黙時間を減らす"
+              className="flex h-5 w-5 items-center justify-center rounded border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-30"
+              onClick={() =>
+                onSilenceDelayChange(Math.max(0.5, silenceDelaySeconds - 0.5))
+              }
+              disabled={silenceDelaySeconds <= 0.5}
+            >
+              <Minus className="h-3 w-3" />
+            </button>
+            <span className="min-w-[40px] text-center text-[10px] text-muted-foreground">
+              {silenceDelaySeconds}秒で送信
+            </span>
+            <button
+              type="button"
+              title="沈黙時間を増やす"
+              className="flex h-5 w-5 items-center justify-center rounded border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-30"
+              onClick={() =>
+                onSilenceDelayChange(Math.min(10, silenceDelaySeconds + 0.5))
+              }
+              disabled={silenceDelaySeconds >= 10}
+            >
+              <Plus className="h-3 w-3" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
