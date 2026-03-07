@@ -1,4 +1,11 @@
-import { Keyboard, MessageSquarePlus, Mic, Mouse, Type, X } from "lucide-react";
+import {
+  Keyboard,
+  MessageSquarePlus,
+  Mic,
+  Mouse,
+  Type,
+  X,
+} from "lucide-react";
 import { useEffect } from "react";
 
 interface CheatSheetProps {
@@ -6,37 +13,52 @@ interface CheatSheetProps {
   onClose: () => void;
 }
 
+interface SheetItem {
+  label: string;
+  description: string;
+  voice?: string;
+}
+
 interface SheetSection {
   icon: React.ReactNode;
   title: string;
-  items: { label: string; description: string }[];
+  note?: string;
+  items: SheetItem[];
 }
 
 const sections: SheetSection[] = [
   {
     icon: <Mic className="h-4 w-4" />,
     title: "音声入力",
+    note: "マイクONで話すだけ。全ての指示を音声で出せます。",
     items: [
       { label: "マイクボタン", description: "音声入力の開始 / 停止" },
       { label: "1秒の沈黙", description: "自動でメッセージ送信" },
-      { label: "「Opusに切り替えて」", description: "音声でモデル変更" },
-      { label: "「Sonnetに切り替えて」", description: "音声でモデル変更" },
+      {
+        label: "自由な指示",
+        description: "話した内容がそのままAIへの指示になる",
+      },
+    ],
+  },
+  {
+    icon: <Mouse className="h-4 w-4" />,
+    title: "モデル切替",
+    items: [
+      {
+        label: "ヘッダーのボタン",
+        description: "Opus / Sonnet を切り替え",
+        voice: "「Opusに切り替えて」「Sonnetに」",
+      },
     ],
   },
   {
     icon: <Type className="h-4 w-4" />,
     title: "テキスト入力",
+    note: "音声の代わりにテキストでも同じ指示が可能です。",
     items: [
       { label: "Enter", description: "メッセージ送信" },
       { label: "Shift + Enter", description: "改行" },
       { label: "画像ペースト", description: "Cmd+V で画像を添付" },
-    ],
-  },
-  {
-    icon: <Keyboard className="h-4 w-4" />,
-    title: "キーボード",
-    items: [
-      { label: "Cmd + /", description: "このチートシートの開閉" },
     ],
   },
   {
@@ -49,10 +71,10 @@ const sections: SheetSection[] = [
     ],
   },
   {
-    icon: <Mouse className="h-4 w-4" />,
-    title: "モデル切替",
+    icon: <Keyboard className="h-4 w-4" />,
+    title: "キーボード",
     items: [
-      { label: "ヘッダーのボタン", description: "Opus / Sonnet を切り替え" },
+      { label: "Cmd + /", description: "このチートシートの開閉" },
     ],
   },
 ];
@@ -99,22 +121,35 @@ export function CheatSheet({ isOpen, onClose }: CheatSheetProps) {
           <div className="flex flex-col gap-5">
             {sections.map((section) => (
               <div key={section.title}>
-                <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <div className="mb-1.5 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   {section.icon}
                   <span>{section.title}</span>
                 </div>
-                <div className="flex flex-col gap-1.5">
+                {section.note && (
+                  <p className="mb-2 px-2 text-[11px] text-muted-foreground">
+                    {section.note}
+                  </p>
+                )}
+                <div className="flex flex-col gap-1">
                   {section.items.map((item) => (
                     <div
                       key={item.label}
-                      className="flex items-baseline justify-between gap-3 rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-accent/50"
+                      className="rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-accent/50"
                     >
-                      <span className="shrink-0 font-medium text-foreground">
-                        {item.label}
-                      </span>
-                      <span className="text-right text-muted-foreground">
-                        {item.description}
-                      </span>
+                      <div className="flex items-baseline justify-between gap-3">
+                        <span className="shrink-0 font-medium text-foreground">
+                          {item.label}
+                        </span>
+                        <span className="text-right text-muted-foreground">
+                          {item.description}
+                        </span>
+                      </div>
+                      {item.voice && (
+                        <div className="mt-0.5 flex items-center gap-1 text-[11px] text-emerald-400">
+                          <Mic className="h-3 w-3" />
+                          <span>{item.voice}</span>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
