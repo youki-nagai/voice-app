@@ -1,4 +1,11 @@
 import { Minus, Plus, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { IconButton } from "../../atoms/icon-button/icon-button";
 import { MicIcon, SendIcon } from "../../atoms/icons";
 import { TextInput } from "../../atoms/text-input/text-input";
@@ -39,84 +46,104 @@ export function ControlBar({
   };
 
   return (
-    <div className="flex items-start gap-4 border-t border-border bg-background px-5 py-4">
-      <div className="flex flex-1 items-center gap-3 rounded-3xl border border-border bg-card px-4 py-3">
-        {pendingImageUrls.map((url, index) => (
-          <span key={url.slice(-20)} className="relative mr-2 inline-block">
-            <img
-              src={url}
-              alt={`添付画像${index + 1}`}
-              className="max-h-9 rounded-md border border-border align-middle"
-            />
-            <button
-              type="button"
-              className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white"
-              title="画像を削除"
-              onClick={() => onImageRemove(index)}
-            >
-              <X className="h-2.5 w-2.5" />
-            </button>
-          </span>
-        ))}
-        <TextInput
-          value={textValue}
-          onChange={onTextChange}
-          onSubmit={handleSend}
-          onPaste={onImagePaste}
-          placeholder="テキストで入力..."
-        />
-        <IconButton
-          variant="send"
-          title="送信"
-          onClick={handleSend}
-          disabled={!textValue.trim() || isWaitingForAI}
-        >
-          <SendIcon className="h-4 w-4" />
-        </IconButton>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <div className="flex flex-col items-center gap-0.5">
-          <span className="min-w-[60px] text-center text-[11px] text-muted-foreground">
-            {silenceTimerText}
-          </span>
-          <IconButton
-            variant="mic"
-            title="音声入力"
-            active={isRecording}
-            onClick={onMicToggle}
-          >
-            <MicIcon className="h-5 w-5" />
-          </IconButton>
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              title="沈黙時間を減らす"
-              className="flex h-5 w-5 items-center justify-center rounded border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-30"
-              onClick={() =>
-                onSilenceDelayChange(Math.max(0.5, silenceDelaySeconds - 0.5))
-              }
-              disabled={silenceDelaySeconds <= 0.5}
-            >
-              <Minus className="h-3 w-3" />
-            </button>
-            <span className="min-w-[40px] text-center text-[10px] text-muted-foreground">
-              {silenceDelaySeconds}秒で送信
+    <TooltipProvider>
+      <div className="flex items-start gap-4 border-t border-border bg-background px-5 py-4">
+        <div className="flex flex-1 items-center gap-3 rounded-3xl border border-border bg-card px-4 py-3">
+          {pendingImageUrls.map((url, index) => (
+            <span key={url.slice(-20)} className="relative mr-2 inline-block">
+              <img
+                src={url}
+                alt={`添付画像${index + 1}`}
+                className="max-h-9 rounded-md border border-border align-middle"
+              />
+              <Button
+                variant="destructive"
+                size="icon"
+                className="absolute -right-1.5 -top-1.5 h-4 w-4 rounded-full"
+                onClick={() => onImageRemove(index)}
+              >
+                <X className="h-2.5 w-2.5" />
+              </Button>
             </span>
-            <button
-              type="button"
-              title="沈黙時間を増やす"
-              className="flex h-5 w-5 items-center justify-center rounded border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-30"
-              onClick={() =>
-                onSilenceDelayChange(Math.min(10, silenceDelaySeconds + 0.5))
-              }
-              disabled={silenceDelaySeconds >= 10}
+          ))}
+          <TextInput
+            value={textValue}
+            onChange={onTextChange}
+            onSubmit={handleSend}
+            onPaste={onImagePaste}
+            placeholder="テキストで入力..."
+          />
+          <IconButton
+            variant="send"
+            title="送信"
+            onClick={handleSend}
+            disabled={!textValue.trim() || isWaitingForAI}
+          >
+            <SendIcon className="h-4 w-4" />
+          </IconButton>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="flex flex-col items-center gap-0.5">
+            <span className="min-w-[60px] text-center text-[11px] text-muted-foreground">
+              {silenceTimerText}
+            </span>
+            <IconButton
+              variant="mic"
+              title="音声入力"
+              active={isRecording}
+              onClick={onMicToggle}
             >
-              <Plus className="h-3 w-3" />
-            </button>
+              <MicIcon className="h-5 w-5" />
+            </IconButton>
+            <div className="flex items-center gap-1">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-5 w-5"
+                    onClick={() =>
+                      onSilenceDelayChange(
+                        Math.max(0.5, silenceDelaySeconds - 0.5),
+                      )
+                    }
+                    disabled={silenceDelaySeconds <= 0.5}
+                  >
+                    <Minus className="h-3 w-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>沈黙時間を減らす</p>
+                </TooltipContent>
+              </Tooltip>
+              <span className="min-w-[40px] text-center text-[10px] text-muted-foreground">
+                {silenceDelaySeconds}秒で送信
+              </span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-5 w-5"
+                    onClick={() =>
+                      onSilenceDelayChange(
+                        Math.min(10, silenceDelaySeconds + 0.5),
+                      )
+                    }
+                    disabled={silenceDelaySeconds >= 10}
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>沈黙時間を増やす</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }

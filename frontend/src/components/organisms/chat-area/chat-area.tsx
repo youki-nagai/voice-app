@@ -1,5 +1,6 @@
 import { ChevronDown } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 import type { TimelineItem } from "../../../types/messages";
 import { Spinner } from "../../atoms/spinner/spinner";
 import { ChatMessage } from "../../molecules/chat-message/chat-message";
@@ -84,14 +85,15 @@ export function ChatArea({ timeline }: ChatAreaProps) {
         })}
       </div>
       {showScrollButton && (
-        <button
-          type="button"
+        <Button
+          variant="secondary"
+          size="icon"
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full shadow-lg"
           onClick={scrollToBottom}
-          className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-zinc-700 p-2 text-white shadow-lg transition-opacity hover:bg-zinc-600"
           aria-label="最新メッセージへスクロール"
         >
           <ChevronDown className="h-5 w-5" />
-        </button>
+        </Button>
       )}
     </div>
   );

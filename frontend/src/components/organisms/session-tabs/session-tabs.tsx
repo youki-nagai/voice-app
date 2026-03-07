@@ -53,7 +53,9 @@ export function SessionTabs({
             key={session.id}
             role="tab"
             tabIndex={0}
-            data-active={isCurrentPanel || (!forPanel && (isPrimary || isSecondary))}
+            data-active={
+              isCurrentPanel || (!forPanel && (isPrimary || isSecondary))
+            }
             className={`group relative flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs transition-colors ${
               isCurrentPanel
                 ? "bg-accent text-accent-foreground"

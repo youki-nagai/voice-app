@@ -1,4 +1,12 @@
 import { ChevronRight } from "lucide-react";
+import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import type { ToolAction } from "../../../types/messages";
 import { Spinner } from "../../atoms/spinner/spinner";
@@ -10,20 +18,27 @@ interface ActionLogProps {
 }
 
 export function ActionLog({ actions, status }: ActionLogProps) {
+  const [isOpen, setIsOpen] = useState(status === "running");
   const lastAction = actions[actions.length - 1];
   const currentText = status === "done" ? "完了" : lastAction?.text || "";
 
   return (
     <div className="w-full max-w-[85%] self-start">
-      <details
-        open={status === "running"}
+      <Collapsible
+        open={isOpen}
+        onOpenChange={setIsOpen}
         className={cn(
-          "group overflow-hidden rounded-lg border border-indigo-950 bg-[#141420] transition-colors",
+          "overflow-hidden rounded-lg border border-indigo-950 bg-[#141420] transition-colors",
           status === "running" && "border-indigo-900",
         )}
       >
-        <summary className="flex cursor-pointer select-none items-center gap-2 px-3 py-2 text-xs text-indigo-400 list-none hover:bg-indigo-950/50 [&::-webkit-details-marker]:hidden">
-          <ChevronRight className="h-2.5 w-2.5 shrink-0 text-indigo-600 transition-transform group-open:rotate-90" />
+        <CollapsibleTrigger className="flex w-full cursor-pointer select-none items-center gap-2 px-3 py-2 text-xs text-indigo-400 hover:bg-indigo-950/50">
+          <ChevronRight
+            className={cn(
+              "h-2.5 w-2.5 shrink-0 text-indigo-600 transition-transform",
+              isOpen && "rotate-90",
+            )}
+          />
           {status === "running" && (
             <Spinner size="small" data-testid="action-log-spinner" />
           )}
@@ -34,24 +49,29 @@ export function ActionLog({ actions, status }: ActionLogProps) {
           >
             {currentText}
           </span>
-          <span
-            className="shrink-0 rounded-full bg-indigo-950 px-1.5 py-px text-[10px] text-indigo-300"
+          <Badge
+            variant="secondary"
+            className="shrink-0 bg-indigo-950 px-1.5 py-px text-[10px] text-indigo-300 hover:bg-indigo-950"
             data-testid="action-count"
           >
             {actions.length}
-          </span>
-        </summary>
-        <div className="max-h-[300px] overflow-y-auto py-1">
-          {actions.map((action) => (
-            <ActionLogItem
-              key={`${action.tool}-${action.text}`}
-              tool={action.tool}
-              text={action.text}
-              status={action.status}
-            />
-          ))}
-        </div>
-      </details>
+          </Badge>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <ScrollArea className="max-h-[300px]">
+            <div className="py-1">
+              {actions.map((action) => (
+                <ActionLogItem
+                  key={`${action.tool}-${action.text}`}
+                  tool={action.tool}
+                  text={action.text}
+                  status={action.status}
+                />
+              ))}
+            </div>
+          </ScrollArea>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 }

@@ -37,37 +37,32 @@ describe("action-log", () => {
     expect(screen.getByTestId("action-log-current")).toHaveTextContent("完了");
   });
 
-  it("renders all action items", () => {
+  it("renders all action items when open", () => {
     render(<ActionLog actions={actions} status="running" />);
     expect(screen.getByText("コマンド実行")).toBeInTheDocument();
-    // 'ファイル読み込み' appears in both action-log-current and action-list
     expect(
       screen.getAllByText("ファイル読み込み").length,
     ).toBeGreaterThanOrEqual(1);
   });
 
-  it("collapses when done", async () => {
-    const { container } = render(<ActionLog actions={actions} status="done" />);
-    const details = container.querySelector("details");
-    expect(details).not.toHaveAttribute("open");
+  it("is closed when done", () => {
+    render(<ActionLog actions={actions} status="done" />);
+    // Collapsible content should be hidden when done (initial state is closed)
+    expect(screen.queryByText("コマンド実行")).not.toBeInTheDocument();
   });
 
   it("is open when running", () => {
-    const { container } = render(
-      <ActionLog actions={actions} status="running" />,
-    );
-    const details = container.querySelector("details");
-    expect(details).toHaveAttribute("open");
+    render(<ActionLog actions={actions} status="running" />);
+    expect(screen.getByText("コマンド実行")).toBeInTheDocument();
   });
 
   it("can toggle open/close", async () => {
     const user = userEvent.setup();
-    const { container } = render(
-      <ActionLog actions={actions} status="running" />,
-    );
-    const summary = container.querySelector("summary") as HTMLElement;
-    await user.click(summary);
-    const details = container.querySelector("details");
-    expect(details).not.toHaveAttribute("open");
+    render(<ActionLog actions={actions} status="running" />);
+    const trigger = screen.getByText("Claude の作業").closest("button");
+    expect(trigger).toBeTruthy();
+    if (trigger) await user.click(trigger);
+    // After clicking, content should be hidden
+    expect(screen.queryByText("コマンド実行")).not.toBeInTheDocument();
   });
 });

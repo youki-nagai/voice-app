@@ -96,7 +96,13 @@ describe("control-bar", () => {
         onImageRemove={onImageRemove}
       />,
     );
-    await user.click(screen.getByTitle("画像を削除"));
+    // The destructive button doesn't have title anymore, find by aria or text
+    const removeButton = screen
+      .getByAltText("添付画像1")
+      .closest("span")
+      ?.querySelector("button");
+    expect(removeButton).toBeTruthy();
+    if (removeButton) await user.click(removeButton);
     expect(onImageRemove).toHaveBeenCalledWith(0);
   });
 });

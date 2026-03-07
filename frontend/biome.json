@@ -1,7 +1,12 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.4.6/schema.json",
   "files": {
-    "includes": ["**", "!dist"]
+    "includes": [
+      "**",
+      "!dist",
+      "!src/components/ui",
+      "!src/hooks/use-mobile.tsx"
+    ]
   },
   "assist": {
     "actions": {
