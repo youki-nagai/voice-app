@@ -20,9 +20,9 @@ interface ChatTemplateProps {
   onMicToggle: () => void;
   silenceTimerText: string;
   isWaitingForAI: boolean;
-  pendingImageUrl: string | null;
+  pendingImageUrls: string[];
   onImagePaste: (e: React.ClipboardEvent) => void;
-  onImageRemove: () => void;
+  onImageRemove: (index: number) => void;
 }
 
 export function ChatTemplate(props: ChatTemplateProps) {
@@ -43,7 +43,7 @@ export function ChatTemplate(props: ChatTemplateProps) {
         onMicToggle={props.onMicToggle}
         silenceTimerText={props.silenceTimerText}
         isWaitingForAI={props.isWaitingForAI}
-        pendingImageUrl={props.pendingImageUrl}
+        pendingImageUrls={props.pendingImageUrls}
         onImagePaste={props.onImagePaste}
         onImageRemove={props.onImageRemove}
       />

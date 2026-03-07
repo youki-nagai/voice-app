@@ -12,7 +12,7 @@ describe("control-bar", () => {
     onMicToggle: vi.fn(),
     silenceTimerText: "",
     isWaitingForAI: false,
-    pendingImageUrl: null as string | null,
+    pendingImageUrls: [] as string[],
     onImagePaste: vi.fn(),
     onImageRemove: vi.fn(),
   };
@@ -60,27 +60,41 @@ describe("control-bar", () => {
     expect(screen.getByText("話し中...")).toBeInTheDocument();
   });
 
-  it("shows image preview when pendingImageUrl is set", () => {
+  it("shows image preview when pendingImageUrls has items", () => {
     render(
       <ControlBar
         {...defaultProps}
-        pendingImageUrl="data:image/png;base64,abc"
+        pendingImageUrls={["data:image/png;base64,abc"]}
       />,
     );
-    expect(screen.getByAltText("添付画像")).toBeInTheDocument();
+    expect(screen.getByAltText("添付画像1")).toBeInTheDocument();
   });
 
-  it("calls onImageRemove when remove button clicked", async () => {
+  it("shows multiple image previews", () => {
+    render(
+      <ControlBar
+        {...defaultProps}
+        pendingImageUrls={[
+          "data:image/png;base64,abc",
+          "data:image/png;base64,def",
+        ]}
+      />,
+    );
+    expect(screen.getByAltText("添付画像1")).toBeInTheDocument();
+    expect(screen.getByAltText("添付画像2")).toBeInTheDocument();
+  });
+
+  it("calls onImageRemove with index when remove button clicked", async () => {
     const user = userEvent.setup();
     const onImageRemove = vi.fn();
     render(
       <ControlBar
         {...defaultProps}
-        pendingImageUrl="data:image/png;base64,abc"
+        pendingImageUrls={["data:image/png;base64,abc"]}
         onImageRemove={onImageRemove}
       />,
     );
     await user.click(screen.getByTitle("画像を削除"));
-    expect(onImageRemove).toHaveBeenCalledOnce();
+    expect(onImageRemove).toHaveBeenCalledWith(0);
   });
 });

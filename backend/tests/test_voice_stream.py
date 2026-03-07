@@ -127,7 +127,7 @@ class TestVoiceStream:
 
         response = self._client.post(
             "/api/voice/stream",
-            json={"text": "この画像を見て", "image": image_data_url},
+            json={"text": "この画像を見て", "images": [image_data_url]},
         )
 
         assert response.status_code == 200

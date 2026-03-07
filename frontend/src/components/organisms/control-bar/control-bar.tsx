@@ -11,9 +11,9 @@ interface ControlBarProps {
   onMicToggle: () => void;
   silenceTimerText: string;
   isWaitingForAI: boolean;
-  pendingImageUrl: string | null;
+  pendingImageUrls: string[];
   onImagePaste: (e: React.ClipboardEvent) => void;
-  onImageRemove: () => void;
+  onImageRemove: (index: number) => void;
 }
 
 export function ControlBar({
@@ -24,7 +24,7 @@ export function ControlBar({
   onMicToggle,
   silenceTimerText,
   isWaitingForAI,
-  pendingImageUrl,
+  pendingImageUrls,
   onImagePaste,
   onImageRemove,
 }: ControlBarProps) {
@@ -37,23 +37,23 @@ export function ControlBar({
   return (
     <div className="flex items-start gap-4 border-t border-border bg-background px-5 py-4">
       <div className="flex flex-1 items-center gap-3 rounded-3xl border border-border bg-card px-4 py-3">
-        {pendingImageUrl && (
-          <span className="relative mr-2 inline-block">
+        {pendingImageUrls.map((url, index) => (
+          <span key={url.slice(-20)} className="relative mr-2 inline-block">
             <img
-              src={pendingImageUrl}
-              alt="添付画像"
+              src={url}
+              alt={`添付画像${index + 1}`}
               className="max-h-9 rounded-md border border-border align-middle"
             />
             <button
               type="button"
               className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white"
               title="画像を削除"
-              onClick={onImageRemove}
+              onClick={() => onImageRemove(index)}
             >
               <X className="h-2.5 w-2.5" />
             </button>
           </span>
-        )}
+        ))}
         <TextInput
           value={textValue}
           onChange={onTextChange}

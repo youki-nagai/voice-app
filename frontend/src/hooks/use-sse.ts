@@ -23,8 +23,8 @@ interface UseSSEOptions {
 
 export function useSSE({ onMessage, onError, onRetry }: UseSSEOptions) {
   const sendStream = useCallback(
-    async (text: string, model: ModelId, image: string | null) => {
-      const requestBody = JSON.stringify({ text, model, image });
+    async (text: string, model: ModelId, images: string[]) => {
+      const requestBody = JSON.stringify({ text, model, images });
 
       async function attemptStream(retryCount: number): Promise<void> {
         try {
