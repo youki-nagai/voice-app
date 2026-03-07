@@ -1,3 +1,4 @@
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -17,6 +18,7 @@ class TestGitRouterCheck:
 
     def teardown_method(self):
         app.dependency_overrides.clear()
+        shutil.rmtree(self._tmpdir, ignore_errors=True)
 
     def test_given_git_check_endpoint_when_called_then_returns_status(self):
         response = self._client.get("/api/git/check")
@@ -50,6 +52,7 @@ class TestGitRouterOperations:
 
     def teardown_method(self):
         app.dependency_overrides.clear()
+        shutil.rmtree(self._tmpdir, ignore_errors=True)
 
     def test_given_status_endpoint_when_called_then_returns_branch_and_files(self):
         response = self._client.get("/api/git/status")

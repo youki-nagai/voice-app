@@ -1,3 +1,4 @@
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -24,7 +25,11 @@ def _init_git_repo_with_commit() -> str:
 
 class TestGitServiceCheckGhCommand:
     def setup_method(self):
-        self._service = GitService(project_root=tempfile.mkdtemp())
+        self._tmpdir = tempfile.mkdtemp()
+        self._service = GitService(project_root=self._tmpdir)
+
+    def teardown_method(self):
+        shutil.rmtree(self._tmpdir, ignore_errors=True)
 
     @patch("subprocess.run")
     def test_given_gh_not_installed_when_check_then_returns_error(self, mock_run):
@@ -72,6 +77,9 @@ class TestGitServiceGetRepoInfo:
         self._tmpdir = _init_git_repo()
         self._service = GitService(project_root=self._tmpdir)
 
+    def teardown_method(self):
+        shutil.rmtree(self._tmpdir, ignore_errors=True)
+
     def test_given_no_remote_when_get_repo_info_then_returns_none(self):
         result = self._service.get_repo_info()
         assert result is None
@@ -98,6 +106,9 @@ class TestGitServiceCreateBranch:
         self._tmpdir = _init_git_repo_with_commit()
         self._service = GitService(project_root=self._tmpdir)
 
+    def teardown_method(self):
+        shutil.rmtree(self._tmpdir, ignore_errors=True)
+
     def test_given_valid_name_when_create_branch_then_switches_to_new_branch(self):
         result = self._service.create_branch("feature/test")
 
@@ -122,6 +133,9 @@ class TestGitServiceGetStatus:
         self._tmpdir = _init_git_repo_with_commit()
         self._service = GitService(project_root=self._tmpdir)
 
+    def teardown_method(self):
+        shutil.rmtree(self._tmpdir, ignore_errors=True)
+
     def test_given_clean_repo_when_get_status_then_returns_clean(self):
         result = self._service.get_status()
 
@@ -138,7 +152,11 @@ class TestGitServiceGetStatus:
 
 class TestGitServicePush:
     def setup_method(self):
-        self._service = GitService(project_root=tempfile.mkdtemp())
+        self._tmpdir = tempfile.mkdtemp()
+        self._service = GitService(project_root=self._tmpdir)
+
+    def teardown_method(self):
+        shutil.rmtree(self._tmpdir, ignore_errors=True)
 
     @patch("subprocess.run")
     def test_given_valid_repo_when_push_then_returns_success(self, mock_run):
@@ -163,7 +181,11 @@ class TestGitServicePush:
 
 class TestGitServiceCreatePr:
     def setup_method(self):
-        self._service = GitService(project_root=tempfile.mkdtemp())
+        self._tmpdir = tempfile.mkdtemp()
+        self._service = GitService(project_root=self._tmpdir)
+
+    def teardown_method(self):
+        shutil.rmtree(self._tmpdir, ignore_errors=True)
 
     @patch("subprocess.run")
     def test_given_valid_params_when_create_pr_then_returns_url(self, mock_run):
@@ -195,6 +217,9 @@ class TestGitServiceGetLog:
         self._tmpdir = _init_git_repo_with_commit()
         self._service = GitService(project_root=self._tmpdir)
 
+    def teardown_method(self):
+        shutil.rmtree(self._tmpdir, ignore_errors=True)
+
     def test_given_commits_exist_when_get_log_then_returns_entries(self):
         result = self._service.get_log(limit=5)
 
@@ -206,6 +231,9 @@ class TestGitServiceAutoCommit:
     def setup_method(self):
         self._tmpdir = _init_git_repo_with_commit()
         self._service = GitService(project_root=self._tmpdir)
+
+    def teardown_method(self):
+        shutil.rmtree(self._tmpdir, ignore_errors=True)
 
     def test_given_changes_when_auto_commit_then_returns_message(self):
         Path(self._tmpdir, "new.py").write_text("print(1)")

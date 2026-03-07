@@ -40,5 +40,5 @@ make format   # フォーマット自動修正
 
 - **Backend**: FastAPI + Python 3.13 + uv
 - **Frontend**: HTML/JS + Web Speech API
-- **AI**: Anthropic Python SDK (Claude)
+- **AI**: Claude Code CLI（サブプロセス経由）
 - **Communication**: SSE (Server-Sent Events)

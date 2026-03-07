@@ -1,3 +1,4 @@
+import os
 import subprocess
 from pathlib import Path
 
@@ -93,7 +94,6 @@ class GitService:
         self, instruction: str, *, author_name: str = "voice-app", author_email: str = "voice-app@local"
     ) -> str | None:
         """変更をステージング＆コミット。変更がなければ None を返す。"""
-        import os
 
         try:
             self._run(["git", "add", "-A"])
