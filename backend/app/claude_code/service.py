@@ -9,6 +9,25 @@ from typing import ClassVar
 
 logger = logging.getLogger(__name__)
 
+_TOOL_FORMAT: dict[str, tuple[str, str]] = {
+    "Write": ("file_path,path", "{name_lower}: {value}"),
+    "Edit": ("file_path,path", "{name_lower}: {value}"),
+    "MultiEdit": ("file_path,path", "{name_lower}: {value}"),
+    "Bash": ("command", "$ {value}"),
+    "Read": ("file_path", "read: {value}"),
+    "Glob": ("pattern", "glob: {value}"),
+    "Grep": ("pattern", "grep: {value}"),
+}
+
+
+def _format_tool_action(name: str, inp: dict) -> str:
+    if name in _TOOL_FORMAT:
+        keys_str, template = _TOOL_FORMAT[name]
+        keys = keys_str.split(",")
+        value = next((inp.get(k, "") for k in keys if inp.get(k)), "")
+        return template.format(name_lower=name.lower(), value=value)
+    return f"tool: {name}"
+
 
 class ClaudeCodeService:
     _session_id: ClassVar[str | None] = None
@@ -25,6 +44,11 @@ class ClaudeCodeService:
         if local_bin.exists():
             return str(local_bin)
         raise RuntimeError("claude コマンドが見つかりません。Claude Code CLIをインストールしてください。")
+
+    @staticmethod
+    def _update_session_id(event: dict) -> None:
+        if session_id := event.get("session_id"):
+            ClaudeCodeService._session_id = session_id
 
     async def execute(self, prompt: str, model: str = "claude-opus-4-6") -> AsyncGenerator[dict]:
         claude_bin = self._find_claude_binary()
@@ -70,8 +94,7 @@ class ClaudeCodeService:
             event_type = event.get("type")
 
             if event_type == "system":
-                if session_id := event.get("session_id"):
-                    ClaudeCodeService._session_id = session_id
+                self._update_session_id(event)
 
             elif event_type == "assistant":
                 message = event.get("message", {})
@@ -91,27 +114,11 @@ class ClaudeCodeService:
                     seen_tool_ids.add(tool_id)
 
                     name = block.get("name", "")
-                    inp = block.get("input", {})
-                    if name in ("Write", "Edit", "MultiEdit"):
-                        path = inp.get("file_path", inp.get("path", ""))
-                        yield {"type": "tool_action", "tool": name, "text": f"{name.lower()}: {path}"}
-                    elif name == "Bash":
-                        yield {"type": "tool_action", "tool": "Bash", "text": f"$ {inp.get('command', '')}"}
-                    elif name == "Read":
-                        path = inp.get("file_path", "")
-                        yield {"type": "tool_action", "tool": "Read", "text": f"read: {path}"}
-                    elif name == "Glob":
-                        pattern = inp.get("pattern", "")
-                        yield {"type": "tool_action", "tool": "Glob", "text": f"glob: {pattern}"}
-                    elif name == "Grep":
-                        pattern = inp.get("pattern", "")
-                        yield {"type": "tool_action", "tool": "Grep", "text": f"grep: {pattern}"}
-                    else:
-                        yield {"type": "tool_action", "tool": name, "text": f"tool: {name}"}
+                    text = _format_tool_action(name, block.get("input", {}))
+                    yield {"type": "tool_action", "tool": name, "text": text}
 
             elif event_type == "result":
-                if session_id := event.get("session_id"):
-                    ClaudeCodeService._session_id = session_id
+                self._update_session_id(event)
                 yield {"type": "ai_done", "explanation": event.get("result", "")}
 
         await proc.wait()

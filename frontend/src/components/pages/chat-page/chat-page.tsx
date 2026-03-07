@@ -4,7 +4,11 @@ import { useGitCommands } from "../../../hooks/use-git-commands";
 import { useGitStatus } from "../../../hooks/use-git-status";
 import { useSpeechRecognition } from "../../../hooks/use-speech-recognition";
 import { useSSE } from "../../../hooks/use-sse";
-import { detectGitCommand, detectModelCommand } from "../../../types/git";
+import {
+  detectGitCommand,
+  detectModelCommand,
+  getModelLabel,
+} from "../../../types/git";
 import type {
   ModelId,
   ServerMessage,
@@ -104,6 +108,14 @@ export function ChatPage() {
     },
   });
 
+  const switchModel = useCallback(
+    (model: ModelId) => {
+      setSelectedModel(model);
+      chat.addMessage(`モデル切替: ${getModelLabel(model)}`, "system");
+    },
+    [chat],
+  );
+
   const sendMessage = useCallback(
     (text: string, skipUserDisplay = false) => {
       if (!text.trim() || isWaitingForAI) return;
@@ -114,9 +126,7 @@ export function ChatPage() {
 
       const modelCmd = detectModelCommand(text);
       if (modelCmd) {
-        setSelectedModel(modelCmd as ModelId);
-        const label = modelCmd.includes("opus") ? "Opus" : "Sonnet";
-        chat.addMessage(`モデル切替: ${label}`, "system");
+        switchModel(modelCmd);
         return;
       }
 
@@ -140,6 +150,7 @@ export function ChatPage() {
       pendingImageUrl,
       sse,
       executeGitCommand,
+      switchModel,
     ],
   );
 
@@ -178,23 +189,10 @@ export function ChatPage() {
     }
   }, [textValue, sendMessage]);
 
-  const handleModelChange = useCallback(
-    (model: ModelId) => {
-      setSelectedModel(model);
-      const label = model.includes("opus") ? "Opus" : "Sonnet";
-      chat.addMessage(`モデル切替: ${label}`, "system");
-    },
-    [chat],
+  const handleGitStatusClick = useCallback(
+    () => executeGitCommand("check", ""),
+    [executeGitCommand],
   );
-
-  const handleGitStatusClick = useCallback(async () => {
-    const detail = await checkGitStatus();
-    if (detail) {
-      chat.addMessage(detail, "system");
-    } else {
-      chat.addMessage("Git状態の取得に失敗しました", "error");
-    }
-  }, [checkGitStatus, chat]);
 
   const handleImagePaste = useCallback((e: React.ClipboardEvent) => {
     const items = e.clipboardData?.items;
@@ -221,26 +219,6 @@ export function ChatPage() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Visibility change handler
-  useEffect(() => {
-    let wasRecording = false;
-    const handler = () => {
-      if (document.hidden) {
-        if (speech.isRecording) {
-          wasRecording = true;
-          speech.stopRecording();
-        }
-      } else {
-        if (wasRecording) {
-          wasRecording = false;
-          speech.startRecording();
-        }
-      }
-    };
-    document.addEventListener("visibilitychange", handler);
-    return () => document.removeEventListener("visibilitychange", handler);
-  }, [speech]);
-
   // Compute app status
   let appStatus: StatusDotStatus = "connected";
   let appStatusText = "準備完了";
@@ -264,7 +242,7 @@ export function ChatPage() {
   return (
     <ChatTemplate
       selectedModel={selectedModel}
-      onModelChange={handleModelChange}
+      onModelChange={switchModel}
       gitStatus={gitStatus}
       gitBranch={gitBranch}
       onGitStatusClick={handleGitStatusClick}

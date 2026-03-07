@@ -7,24 +7,22 @@ class GitService:
     def __init__(self, project_root: str):
         self._project_root = Path(project_root)
 
-    def _run(self, cmd: list[str], *, timeout: int = 10) -> subprocess.CompletedProcess:
+    def _run(
+        self,
+        cmd: list[str],
+        *,
+        check: bool = True,
+        timeout: int = 10,
+        env: dict[str, str] | None = None,
+    ) -> subprocess.CompletedProcess:
         return subprocess.run(
             cmd,
             cwd=self._project_root,
             capture_output=True,
             text=True,
-            check=True,
+            check=check,
             timeout=timeout,
-        )
-
-    def _run_safe(self, cmd: list[str], *, timeout: int = 10) -> subprocess.CompletedProcess:
-        """check=False 版。戻り値で成否を判断する用途。"""
-        return subprocess.run(
-            cmd,
-            cwd=self._project_root,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
+            env=env,
         )
 
     def check_gh_command(self) -> dict:
@@ -59,8 +57,8 @@ class GitService:
             return {"success": False, "error": e.stderr.strip() or str(e)}
 
     def get_status(self) -> dict:
-        branch = self._run_safe(["git", "branch", "--show-current"], timeout=5).stdout.strip()
-        status = self._run_safe(["git", "status", "--porcelain"], timeout=5).stdout.strip()
+        branch = self._run(["git", "branch", "--show-current"], check=False, timeout=5).stdout.strip()
+        status = self._run(["git", "status", "--porcelain"], check=False, timeout=5).stdout.strip()
         changed_files = [line.strip() for line in status.split("\n") if line.strip()]
         return {"branch": branch, "changed_files": changed_files}
 
@@ -79,7 +77,7 @@ class GitService:
             return {"success": False, "error": e.stderr.strip() or str(e)}
 
     def get_log(self, limit: int = 10) -> list[str]:
-        r = self._run_safe(["git", "log", f"--max-count={limit}", "--oneline"], timeout=5)
+        r = self._run(["git", "log", f"--max-count={limit}", "--oneline"], check=False, timeout=5)
         return [line for line in r.stdout.strip().split("\n") if line.strip()]
 
     def get_repo_info(self) -> dict | None:
@@ -93,21 +91,16 @@ class GitService:
     def auto_commit(
         self, instruction: str, *, author_name: str = "voice-app", author_email: str = "voice-app@local"
     ) -> str | None:
-        """変更をステージング＆コミット。変更がなければ None を返す。"""
-
         try:
             self._run(["git", "add", "-A"])
 
-            diff = self._run_safe(["git", "diff", "--cached", "--quiet"])
+            diff = self._run(["git", "diff", "--cached", "--quiet"], check=False)
             if diff.returncode == 0:
                 return None
 
             message = f"voice: {instruction[:80]}"
-            subprocess.run(
+            self._run(
                 ["git", "commit", "-m", message],
-                cwd=self._project_root,
-                capture_output=True,
-                check=True,
                 env={**os.environ, "GIT_AUTHOR_NAME": author_name, "GIT_AUTHOR_EMAIL": author_email},
             )
             return message

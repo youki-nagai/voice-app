@@ -6,6 +6,10 @@ interface UseGitCommandsOptions {
   checkGitStatus: () => Promise<string | null>;
 }
 
+function formatError(prefix: string, e: unknown): string {
+  return `${prefix}: ${e instanceof Error ? e.message : String(e)}`;
+}
+
 export function useGitCommands({
   addMessage,
   checkGitStatus,
@@ -33,10 +37,7 @@ export function useGitCommands({
             }
             await checkGitStatus();
           } catch (e) {
-            addMessage(
-              `pushエラー: ${e instanceof Error ? e.message : String(e)}`,
-              "error",
-            );
+            addMessage(formatError("pushエラー", e), "error");
           }
           break;
         }
@@ -63,10 +64,7 @@ export function useGitCommands({
               addMessage(`PR作成失敗: ${data.error}`, "error");
             }
           } catch (e) {
-            addMessage(
-              `PR作成エラー: ${e instanceof Error ? e.message : String(e)}`,
-              "error",
-            );
+            addMessage(formatError("PR作成エラー", e), "error");
           }
           break;
         }
@@ -86,10 +84,7 @@ export function useGitCommands({
             }
             await checkGitStatus();
           } catch (e) {
-            addMessage(
-              `ブランチ作成エラー: ${e instanceof Error ? e.message : String(e)}`,
-              "error",
-            );
+            addMessage(formatError("ブランチ作成エラー", e), "error");
           }
           break;
         }
@@ -103,10 +98,7 @@ export function useGitCommands({
               addMessage("コミット履歴がありません", "system");
             }
           } catch (e) {
-            addMessage(
-              `ログ取得エラー: ${e instanceof Error ? e.message : String(e)}`,
-              "error",
-            );
+            addMessage(formatError("ログ取得エラー", e), "error");
           }
           break;
         }
@@ -122,10 +114,7 @@ export function useGitCommands({
             }
             addMessage(lines.join("\n"), "system");
           } catch (e) {
-            addMessage(
-              `ステータス取得エラー: ${e instanceof Error ? e.message : String(e)}`,
-              "error",
-            );
+            addMessage(formatError("ステータス取得エラー", e), "error");
           }
           break;
         }

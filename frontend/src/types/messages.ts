@@ -66,8 +66,6 @@ export type TimelineItem =
   | { kind: "action-log"; data: ActionLog }
   | { kind: "processing"; id: string; text: string };
 
-export type GitAction = "check" | "push" | "pr" | "branch" | "log" | "status";
-
 export interface GitCheckResult {
   gh_status: {
     gh_installed: boolean;
