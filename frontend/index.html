@@ -1009,61 +1009,78 @@
             statusDot.className = 'status-dot processing';
             statusText.textContent = 'AI処理中';
             
-            // fetch + ReadableStream でSSEを受信
-            fetch('/api/voice/stream', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'text/event-stream'
-                },
-                body: JSON.stringify({ text: text, model: selectedModel, image: pendingImageDataUrl })
-            }).then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-                
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-                let buffer = '';
+            // fetch + ReadableStream でSSEを受信（リトライ付き）
+            const MAX_RETRIES = 3;
+            const requestBody = JSON.stringify({ text: text, model: selectedModel, image: pendingImageDataUrl });
 
-                function processLines(text) {
-                    for (const line of text.split('\n')) {
-                        const trimmed = line.trim();
-                        if (trimmed.startsWith('data: ')) {
-                            try {
-                                const data = JSON.parse(trimmed.slice(6));
-                                handleServerMessage(data);
-                            } catch (e) {
-                                console.error('JSON parse error:', e, trimmed);
+            function attemptStream(retryCount) {
+                fetch('/api/voice/stream', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'text/event-stream'
+                    },
+                    body: requestBody
+                }).then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let buffer = '';
+
+                    function processLines(text) {
+                        for (const line of text.split('\n')) {
+                            const trimmed = line.trim();
+                            if (trimmed.startsWith('data: ')) {
+                                try {
+                                    const data = JSON.parse(trimmed.slice(6));
+                                    if (data.type === 'keepalive') return;
+                                    handleServerMessage(data);
+                                } catch (e) {
+                                    console.error('JSON parse error:', e, trimmed);
+                                }
                             }
                         }
                     }
-                }
 
-                function readStream() {
-                    return reader.read().then(({ done, value }) => {
-                        if (done) {
-                            // 残りバッファを処理
-                            if (buffer.trim()) processLines(buffer);
-                            return;
-                        }
+                    function readStream() {
+                        return reader.read().then(({ done, value }) => {
+                            if (done) {
+                                if (buffer.trim()) processLines(buffer);
+                                return;
+                            }
 
-                        buffer += decoder.decode(value, { stream: true });
-                        const lines = buffer.split('\n');
-                        buffer = lines.pop(); // 未完成の最後の行をバッファに残す
-                        processLines(lines.join('\n'));
-                        
-                        return readStream();
-                    });
-                }
-                
-                return readStream();
-            }).catch(error => {
-                isWaitingForAI = false;
-                clearAllProcessingMessages();
-                addMessage(`エラー: ${error.message}`, 'error');
-                updateStatusAfterAI();
-            });
+                            buffer += decoder.decode(value, { stream: true });
+                            const lines = buffer.split('\n');
+                            buffer = lines.pop();
+                            processLines(lines.join('\n'));
+
+                            return readStream();
+                        });
+                    }
+
+                    return readStream();
+                }).catch(error => {
+                    if (retryCount < MAX_RETRIES && isNetworkError(error)) {
+                        const delay = Math.min(1000 * Math.pow(2, retryCount), 8000);
+                        addMessage(`ネットワークエラー。${delay / 1000}秒後にリトライします... (${retryCount + 1}/${MAX_RETRIES})`, 'error');
+                        setTimeout(() => attemptStream(retryCount + 1), delay);
+                    } else {
+                        isWaitingForAI = false;
+                        clearAllProcessingMessages();
+                        addMessage(`エラー: ${error.message}`, 'error');
+                        updateStatusAfterAI();
+                    }
+                });
+            }
+
+            attemptStream(0);
+        }
+
+        function isNetworkError(error) {
+            return error instanceof TypeError || error.message === 'Failed to fetch' || error.message === 'NetworkError when attempting to fetch resource.' || error.message === 'Load failed';
         }
 
         function setupSpeechRecognition() {
