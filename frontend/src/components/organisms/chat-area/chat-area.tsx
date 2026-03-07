@@ -24,6 +24,7 @@ export function ChatArea({ timeline }: ChatAreaProps) {
       ref={chatRef}
       data-testid="chat-area"
     >
+      <div className="mt-auto" />
       {timeline.map((item) => {
         switch (item.kind) {
           case "message":
