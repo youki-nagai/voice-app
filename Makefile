@@ -1,4 +1,4 @@
-.PHONY: install dev test lint format verify deploy build-frontend
+.PHONY: install dev test lint format verify deploy build-frontend db-up db-down
 
 install:
 	cd backend && uv sync
@@ -42,3 +42,9 @@ deploy:
 	@test -n "$(BRANCH)" || (echo "Usage: make deploy BRANCH=<name> MSG=<message>" && exit 1)
 	@test -n "$(MSG)" || (echo "Usage: make deploy BRANCH=<name> MSG=<message>" && exit 1)
 	./scripts/deploy.sh "$(BRANCH)" "$(MSG)"
+
+db-up:
+	docker compose up -d postgres
+
+db-down:
+	docker compose down
