@@ -16,6 +16,7 @@ export function useSpeechRecognition({ onSpeechComplete, onInterimUpdate, onErro
   const finalTranscriptRef = useRef('');
   const silenceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isRecordingRef = useRef(false);
+  const isWindowFocusedRef = useRef(document.hasFocus());
 
   const SpeechRecognitionAPI =
     typeof window !== 'undefined'
@@ -75,9 +76,9 @@ export function useSpeechRecognition({ onSpeechComplete, onInterimUpdate, onErro
     };
 
     recognition.onend = () => {
-      if (isRecordingRef.current && !document.hidden) {
+      if (isRecordingRef.current && isWindowFocusedRef.current) {
         setTimeout(() => {
-          if (isRecordingRef.current && !document.hidden) {
+          if (isRecordingRef.current && isWindowFocusedRef.current) {
             try { recognition.start(); } catch {}
           }
         }, 300);
@@ -124,27 +125,41 @@ export function useSpeechRecognition({ onSpeechComplete, onInterimUpdate, onErro
   }, []);
 
   useEffect(() => {
-    const handleVisibilityChange = () => {
+    const pauseRecognition = () => {
+      isWindowFocusedRef.current = false;
       if (!isRecordingRef.current) return;
-
-      if (document.hidden) {
-        if (recognitionRef.current) {
-          recognitionRef.current.stop();
-        }
-        if (silenceTimeoutRef.current) {
-          clearTimeout(silenceTimeoutRef.current);
-          silenceTimeoutRef.current = null;
-        }
-      } else {
-        if (recognitionRef.current) {
-          try { recognitionRef.current.start(); } catch {}
-        }
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      if (silenceTimeoutRef.current) {
+        clearTimeout(silenceTimeoutRef.current);
+        silenceTimeoutRef.current = null;
       }
     };
 
+    const resumeRecognition = () => {
+      isWindowFocusedRef.current = true;
+      if (!isRecordingRef.current) return;
+      if (recognitionRef.current) {
+        try { recognitionRef.current.start(); } catch {}
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        pauseRecognition();
+      } else {
+        resumeRecognition();
+      }
+    };
+
+    window.addEventListener('blur', pauseRecognition);
+    window.addEventListener('focus', resumeRecognition);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
+      window.removeEventListener('blur', pauseRecognition);
+      window.removeEventListener('focus', resumeRecognition);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (silenceTimeoutRef.current) {
         clearTimeout(silenceTimeoutRef.current);
