@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { IconButton } from "../../atoms/icon-button/icon-button";
@@ -46,7 +45,6 @@ export function ControlBar({
   };
 
   return (
-    <TooltipProvider>
       <div className="flex items-start gap-4 border-t border-border bg-background px-5 py-4">
         <div className="flex flex-1 items-center gap-3 rounded-3xl border border-border bg-card px-4 py-3">
           {pendingImageUrls.map((url, index) => (
@@ -144,6 +142,5 @@ export function ControlBar({
           </div>
         </div>
       </div>
-    </TooltipProvider>
   );
 }

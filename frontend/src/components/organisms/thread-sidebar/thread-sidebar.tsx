@@ -6,7 +6,6 @@ import { Separator } from "@/components/ui/separator";
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
@@ -82,30 +81,27 @@ export function ThreadSidebar({
 
   if (!isOpen) {
     return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute left-3 top-16 z-10 h-8 w-8"
-              onClick={onToggle}
-            >
-              <PanelLeftOpen className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="right">
-            <p>スレッド一覧を開く</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute left-3 top-16 z-10 h-8 w-8"
+            onClick={onToggle}
+          >
+            <PanelLeftOpen className="h-4 w-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="right">
+          <p>スレッド一覧を開く</p>
+        </TooltipContent>
+      </Tooltip>
     );
   }
 
   const isSplitView = secondarySessionId !== null;
 
   return (
-    <TooltipProvider>
       <aside className="flex h-full w-64 shrink-0 flex-col border-r border-border bg-zinc-900">
         <div className="flex items-center justify-between px-3 py-2.5">
           <span className="text-xs font-semibold text-foreground">
@@ -229,6 +225,5 @@ export function ThreadSidebar({
           )}
         </ScrollArea>
       </aside>
-    </TooltipProvider>
   );
 }

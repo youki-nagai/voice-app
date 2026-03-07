@@ -1,4 +1,5 @@
 import { Keyboard, MessageSquarePlus, Mic, Mouse, Type } from "lucide-react";
+import { Kbd } from "@/components/ui/kbd";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sheet,
@@ -104,9 +105,7 @@ export function CheatSheet({ isOpen, onClose }: CheatSheetProps) {
             <SheetDescription className="sr-only">
               アプリの操作方法
             </SheetDescription>
-            <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
-              Cmd + /
-            </kbd>
+            <Kbd className="text-[10px]">Cmd + /</Kbd>
           </div>
         </SheetHeader>
         <ScrollArea className="flex-1">

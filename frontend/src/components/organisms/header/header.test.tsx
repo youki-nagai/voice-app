@@ -1,7 +1,12 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { Header } from "./header";
+
+function renderWithTooltip(ui: React.ReactElement) {
+  return render(<TooltipProvider>{ui}</TooltipProvider>);
+}
 
 describe("header", () => {
   const defaultProps = {
@@ -13,25 +18,25 @@ describe("header", () => {
   };
 
   it("renders title", () => {
-    render(<Header {...defaultProps} />);
+    renderWithTooltip(<Header {...defaultProps} />);
     expect(screen.getByText("voice-app")).toBeInTheDocument();
   });
 
   it("renders model switch", () => {
-    render(<Header {...defaultProps} />);
+    renderWithTooltip(<Header {...defaultProps} />);
     expect(screen.getByRole("radio", { name: "Opus" })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "Sonnet" })).toBeInTheDocument();
   });
 
   it("renders app status", () => {
-    render(<Header {...defaultProps} />);
+    renderWithTooltip(<Header {...defaultProps} />);
     expect(screen.getByText("準備完了")).toBeInTheDocument();
   });
 
   it("delegates model change", async () => {
     const user = userEvent.setup();
     const onModelChange = vi.fn();
-    render(<Header {...defaultProps} onModelChange={onModelChange} />);
+    renderWithTooltip(<Header {...defaultProps} onModelChange={onModelChange} />);
     await user.click(screen.getByRole("radio", { name: "Sonnet" }));
     expect(onModelChange).toHaveBeenCalledWith("claude-sonnet-4-6");
   });
