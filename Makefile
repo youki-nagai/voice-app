@@ -9,7 +9,15 @@ build-frontend:
 
 dev:
 	cd frontend && bun run build
-	cd backend && uv run uvicorn app.main:app --reload --reload-dir . --reload-dir ../frontend/dist --host 0.0.0.0 --port 8000 --env-file ../.env
+	@MAIN_REPO=$$(git worktree list --porcelain | head -1 | sed 's/^worktree //'); \
+	REPO_ROOT=$$(pwd); \
+	if [ "$$REPO_ROOT" = "$$MAIN_REPO" ]; then \
+		PORT=8000; \
+	else \
+		PORT=$$(python3 -c "import socket; s=socket.socket(); s.bind(('',0)); print(s.getsockname()[1]); s.close()"); \
+	fi; \
+	echo "Starting dev server on port $$PORT"; \
+	cd backend && uv run uvicorn app.main:app --reload --reload-dir . --reload-dir ../frontend/dist --host 0.0.0.0 --port $$PORT --env-file "$$MAIN_REPO/.env"
 
 test:
 	cd backend && uv run pytest
