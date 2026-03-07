@@ -33,7 +33,7 @@ export function GitStatusBadge({
   return (
     <button
       type="button"
-      className="flex items-center gap-1.5 rounded px-2 py-1 text-xs text-zinc-500 transition-colors hover:bg-zinc-900"
+      className="flex items-center gap-1.5 rounded px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-card"
       title="クリックでGit状態を再チェック"
       onClick={onClick}
     >

@@ -25,8 +25,8 @@ export function Header({
   appStatusText,
 }: HeaderProps) {
   return (
-    <header className="flex items-center justify-between border-b border-border bg-zinc-950 px-5 py-3">
-      <h1 className="text-base font-semibold text-white">voice-app</h1>
+    <header className="flex items-center justify-between border-b border-border bg-background px-5 py-3">
+      <h1 className="text-base font-semibold text-foreground">voice-app</h1>
       <div className="flex items-center gap-4">
         <ModelSwitch
           selectedModel={selectedModel}
@@ -37,7 +37,7 @@ export function Header({
           branchName={gitBranch}
           onClick={onGitStatusClick}
         />
-        <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <StatusDot status={appStatus} />
           <span>{appStatusText}</span>
         </div>

@@ -25,7 +25,7 @@ export function TextInput({
   return (
     <Input
       type="text"
-      className="flex-1 border-0 bg-transparent text-sm text-foreground placeholder:text-zinc-600 focus-visible:ring-0"
+      className="flex-1 border-0 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-0"
       value={value}
       onChange={(e) => onChange(e.target.value)}
       onKeyDown={handleKeyDown}

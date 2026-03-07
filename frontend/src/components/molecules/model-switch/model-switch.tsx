@@ -16,13 +16,13 @@ export function ModelSwitch({
   onModelChange,
 }: ModelSwitchProps) {
   return (
-    <div className="flex items-center overflow-hidden rounded-md border border-zinc-700 bg-zinc-900">
+    <div className="flex items-center overflow-hidden rounded-md border border-border bg-card">
       {MODELS.map(({ id, label }) => (
         <button
           type="button"
           key={id}
           className={cn(
-            "border-0 bg-transparent px-2.5 py-1 text-xs text-zinc-600 transition-colors hover:text-zinc-400",
+            "border-0 bg-transparent px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:text-accent-foreground",
             selectedModel === id && "bg-blue-950 text-blue-200",
           )}
           onClick={() => onModelChange(id)}

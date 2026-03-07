@@ -25,7 +25,10 @@ const statusStyles: Record<StatusDotStatus, string> = {
 export function StatusDot({ status }: StatusDotProps) {
   return (
     <div
-      className={cn("h-2 w-2 rounded-full bg-zinc-600", statusStyles[status])}
+      className={cn(
+        "h-2 w-2 rounded-full bg-muted-foreground",
+        statusStyles[status],
+      )}
       data-testid="status-dot"
     />
   );

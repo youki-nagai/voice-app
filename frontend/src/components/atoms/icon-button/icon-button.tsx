@@ -9,8 +9,8 @@ interface IconButtonProps
 
 const variantStyles: Record<string, string> = {
   default: "",
-  send: "rounded-full h-8 w-8 bg-blue-900 text-blue-200 hover:bg-blue-800 disabled:bg-zinc-800 disabled:text-zinc-600",
-  mic: "rounded-full h-12 w-12 border-2 border-zinc-700 bg-zinc-900 text-zinc-500 hover:border-zinc-500 hover:text-zinc-400",
+  send: "rounded-full h-8 w-8 bg-blue-900 text-blue-200 hover:bg-blue-800 disabled:bg-muted disabled:text-muted-foreground",
+  mic: "rounded-full h-12 w-12 border-2 border-border bg-card text-muted-foreground hover:border-ring hover:text-accent-foreground",
 };
 
 export function IconButton({
