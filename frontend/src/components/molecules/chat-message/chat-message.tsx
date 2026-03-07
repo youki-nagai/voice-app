@@ -1,6 +1,6 @@
-import type { ChatMessageType } from '../../../types/messages';
-import { Spinner } from '../../atoms/spinner/spinner';
-import './chat-message.css';
+import type { ChatMessageType } from "../../../types/messages";
+import { Spinner } from "../../atoms/spinner/spinner";
+import "./chat-message.css";
 
 interface ChatMessageProps {
   type: ChatMessageType;

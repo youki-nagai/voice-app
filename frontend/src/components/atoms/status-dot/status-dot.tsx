@@ -1,6 +1,12 @@
-import './status-dot.css';
+import "./status-dot.css";
 
-export type StatusDotStatus = 'connected' | 'recording' | 'processing' | 'error' | 'ok' | 'warn';
+export type StatusDotStatus =
+  | "connected"
+  | "recording"
+  | "processing"
+  | "error"
+  | "ok"
+  | "warn";
 
 interface StatusDotProps {
   status: StatusDotStatus;

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const SILENCE_DELAY = 1000;
 
@@ -8,18 +8,22 @@ interface SpeechRecognitionOptions {
   onError?: (error: string) => void;
 }
 
-export function useSpeechRecognition({ onSpeechComplete, onInterimUpdate, onError }: SpeechRecognitionOptions) {
+export function useSpeechRecognition({
+  onSpeechComplete,
+  onInterimUpdate,
+  onError,
+}: SpeechRecognitionOptions) {
   const [isRecording, setIsRecording] = useState(false);
-  const [silenceTimerText, setSilenceTimerText] = useState('');
+  const [silenceTimerText, setSilenceTimerText] = useState("");
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const finalTranscriptRef = useRef('');
+  const finalTranscriptRef = useRef("");
   const silenceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isRecordingRef = useRef(false);
   const isWindowFocusedRef = useRef(document.hasFocus());
 
   const SpeechRecognitionAPI =
-    typeof window !== 'undefined'
+    typeof window !== "undefined"
       ? (window as unknown as Record<string, unknown>).SpeechRecognition ||
         (window as unknown as Record<string, unknown>).webkitSpeechRecognition
       : null;
@@ -29,19 +33,19 @@ export function useSpeechRecognition({ onSpeechComplete, onInterimUpdate, onErro
   const sendVoiceComplete = useCallback(() => {
     const text = finalTranscriptRef.current.trim();
     if (!text) {
-      setSilenceTimerText('');
+      setSilenceTimerText("");
       return;
     }
     onSpeechComplete(text);
-    finalTranscriptRef.current = '';
-    setSilenceTimerText('送信済み');
+    finalTranscriptRef.current = "";
+    setSilenceTimerText("送信済み");
   }, [onSpeechComplete]);
 
   const resetSilenceTimer = useCallback(() => {
     if (silenceTimeoutRef.current) {
       clearTimeout(silenceTimeoutRef.current);
     }
-    setSilenceTimerText('話し中...');
+    setSilenceTimerText("話し中...");
     silenceTimeoutRef.current = setTimeout(() => {
       sendVoiceComplete();
     }, SILENCE_DELAY);
@@ -49,14 +53,16 @@ export function useSpeechRecognition({ onSpeechComplete, onInterimUpdate, onErro
 
   const setupRecognition = useCallback(() => {
     if (!SpeechRecognitionAPI) return null;
-    const recognition = new (SpeechRecognitionAPI as new () => SpeechRecognition)();
-    recognition.lang = 'ja-JP';
+    const recognition = new (
+      SpeechRecognitionAPI as new () => SpeechRecognition
+    )();
+    recognition.lang = "ja-JP";
     recognition.continuous = true;
     recognition.interimResults = true;
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let interim = '';
-      let finalPart = '';
+      let interim = "";
+      let finalPart = "";
 
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript;
@@ -79,14 +85,22 @@ export function useSpeechRecognition({ onSpeechComplete, onInterimUpdate, onErro
       if (isRecordingRef.current && isWindowFocusedRef.current) {
         setTimeout(() => {
           if (isRecordingRef.current && isWindowFocusedRef.current) {
-            try { recognition.start(); } catch { /* already started */ }
+            try {
+              recognition.start();
+            } catch {
+              /* already started */
+            }
           }
         }, 300);
       }
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      if (event.error === 'no-speech' || event.error === 'aborted' || event.error === 'network') {
+      if (
+        event.error === "no-speech" ||
+        event.error === "aborted" ||
+        event.error === "network"
+      ) {
         return;
       }
       onError?.(`音声認識エラー: ${event.error}`);
@@ -103,16 +117,20 @@ export function useSpeechRecognition({ onSpeechComplete, onInterimUpdate, onErro
 
     isRecordingRef.current = true;
     setIsRecording(true);
-    finalTranscriptRef.current = '';
-    setSilenceTimerText('');
+    finalTranscriptRef.current = "";
+    setSilenceTimerText("");
 
-    try { recognitionRef.current.start(); } catch { /* already started */ }
+    try {
+      recognitionRef.current.start();
+    } catch {
+      /* already started */
+    }
   }, [setupRecognition]);
 
   const stopRecording = useCallback(() => {
     isRecordingRef.current = false;
     setIsRecording(false);
-    setSilenceTimerText('');
+    setSilenceTimerText("");
 
     if (silenceTimeoutRef.current) {
       clearTimeout(silenceTimeoutRef.current);
@@ -141,7 +159,11 @@ export function useSpeechRecognition({ onSpeechComplete, onInterimUpdate, onErro
       isWindowFocusedRef.current = true;
       if (!isRecordingRef.current) return;
       if (recognitionRef.current) {
-        try { recognitionRef.current.start(); } catch { /* already started */ }
+        try {
+          recognitionRef.current.start();
+        } catch {
+          /* already started */
+        }
       }
     };
 
@@ -153,14 +175,14 @@ export function useSpeechRecognition({ onSpeechComplete, onInterimUpdate, onErro
       }
     };
 
-    window.addEventListener('blur', pauseRecognition);
-    window.addEventListener('focus', resumeRecognition);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener("blur", pauseRecognition);
+    window.addEventListener("focus", resumeRecognition);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      window.removeEventListener('blur', pauseRecognition);
-      window.removeEventListener('focus', resumeRecognition);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener("blur", pauseRecognition);
+      window.removeEventListener("focus", resumeRecognition);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       if (silenceTimeoutRef.current) {
         clearTimeout(silenceTimeoutRef.current);
       }

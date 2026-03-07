@@ -21,6 +21,7 @@ lint:
 
 format:
 	cd backend && uv run ruff check --fix . && uv run ruff format .
+	cd frontend && npm run format
 
 verify:
 	@test -n "$(E2E_BASE_URL)" || (echo "ERROR: E2E_BASE_URL is required. Usage: make verify E2E_BASE_URL=http://localhost:<port>" && exit 1)
