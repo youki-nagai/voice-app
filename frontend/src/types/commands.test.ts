@@ -153,6 +153,28 @@ describe("detectAppCommand", () => {
     });
   });
 
+  describe("split", () => {
+    it("detects 'ペイン分割して'", () => {
+      expect(detectAppCommand("ペイン分割して")).toEqual({ type: "split" });
+    });
+
+    it("detects 'ペインわけて'", () => {
+      expect(detectAppCommand("ペインわけて")).toEqual({ type: "split" });
+    });
+
+    it("detects '画面分割して'", () => {
+      expect(detectAppCommand("画面分割して")).toEqual({ type: "split" });
+    });
+
+    it("detects '分割して'", () => {
+      expect(detectAppCommand("分割して")).toEqual({ type: "split" });
+    });
+
+    it("detects 'パネル分割'", () => {
+      expect(detectAppCommand("パネル分割して")).toEqual({ type: "split" });
+    });
+  });
+
   describe("unsplit", () => {
     it("detects '分割やめて'", () => {
       expect(detectAppCommand("分割やめて")).toEqual({ type: "unsplit" });

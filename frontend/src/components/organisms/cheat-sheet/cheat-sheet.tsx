@@ -79,6 +79,16 @@ const sections: SheetSection[] = [
         description: "セッション切り替え",
         voice: "「チャット1に」「次のチャット」「前のチャット」",
       },
+      {
+        label: "ペイン分割",
+        description: "新しいセッションで画面を左右に分割",
+        voice: "「ペイン分割して」「画面分割」「分割して」",
+      },
+      {
+        label: "分割解除",
+        description: "分割ペインを閉じて1画面に戻す",
+        voice: "「分割解除」「分割やめて」「1つに戻して」",
+      },
       { label: "× ボタン", description: "セッションを閉じる" },
     ],
   },

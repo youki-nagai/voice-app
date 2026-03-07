@@ -112,6 +112,12 @@ export function ChatPage() {
           }
           return true;
         }
+        case "split": {
+          const newId = sessionManager.addSession();
+          sessionManager.splitSession(newId);
+          chat.addMessage(newId, "新しいセッションで分割しました", "system");
+          return true;
+        }
         case "unsplit":
           if (sessionManager.isSplitView) {
             sessionManager.unsplit();
