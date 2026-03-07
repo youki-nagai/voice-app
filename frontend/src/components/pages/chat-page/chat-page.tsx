@@ -120,8 +120,11 @@ export function ChatPage() {
     (text: string, skipUserDisplay = false) => {
       if (!text.trim() || isWaitingForAI) return;
 
+      const imageToSend = pendingImageUrl;
+      setPendingImageUrl(null);
+
       if (!skipUserDisplay) {
-        chat.addMessage(text, "user");
+        chat.addMessage(text, "user", imageToSend ?? undefined);
       }
 
       const modelCmd = detectModelCommand(text);
@@ -135,9 +138,6 @@ export function ChatPage() {
         executeGitCommand(gitAction, text);
         return;
       }
-
-      const imageToSend = pendingImageUrl;
-      setPendingImageUrl(null);
 
       chat.setProcessingText("送信中...");
       setIsWaitingForAI(true);
