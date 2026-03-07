@@ -135,7 +135,12 @@ describe("useMultiChat", () => {
   it("adds message with image", () => {
     const { result } = renderHook(() => useMultiChat());
     act(() => {
-      result.current.addMessage("s1", "check this", "user", "data:image/png;base64,abc");
+      result.current.addMessage(
+        "s1",
+        "check this",
+        "user",
+        "data:image/png;base64,abc",
+      );
     });
     const timeline = result.current.getTimeline("s1");
     if (timeline[0].kind === "message") {

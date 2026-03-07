@@ -16,7 +16,6 @@ describe("SessionTabs", () => {
         onSelectSession={vi.fn()}
         onAddSession={vi.fn()}
         onRemoveSession={vi.fn()}
-        onRenameSession={vi.fn()}
         waitingSessionIds={[]}
       />,
     );
@@ -32,11 +31,10 @@ describe("SessionTabs", () => {
         onSelectSession={vi.fn()}
         onAddSession={vi.fn()}
         onRemoveSession={vi.fn()}
-        onRenameSession={vi.fn()}
         waitingSessionIds={[]}
       />,
     );
-    const activeTab = screen.getByText("Chat 1").closest("button");
+    const activeTab = screen.getByText("Chat 1").closest("[role=tab]");
     expect(activeTab?.getAttribute("data-active")).toBe("true");
   });
 
@@ -49,7 +47,6 @@ describe("SessionTabs", () => {
         onSelectSession={onSelect}
         onAddSession={vi.fn()}
         onRemoveSession={vi.fn()}
-        onRenameSession={vi.fn()}
         waitingSessionIds={[]}
       />,
     );
@@ -66,7 +63,6 @@ describe("SessionTabs", () => {
         onSelectSession={vi.fn()}
         onAddSession={onAdd}
         onRemoveSession={vi.fn()}
-        onRenameSession={vi.fn()}
         waitingSessionIds={[]}
       />,
     );
@@ -83,7 +79,6 @@ describe("SessionTabs", () => {
         onSelectSession={vi.fn()}
         onAddSession={vi.fn()}
         onRemoveSession={onRemove}
-        onRenameSession={vi.fn()}
         waitingSessionIds={[]}
       />,
     );
@@ -100,7 +95,6 @@ describe("SessionTabs", () => {
         onSelectSession={vi.fn()}
         onAddSession={vi.fn()}
         onRemoveSession={vi.fn()}
-        onRenameSession={vi.fn()}
         waitingSessionIds={[]}
       />,
     );
@@ -115,11 +109,10 @@ describe("SessionTabs", () => {
         onSelectSession={vi.fn()}
         onAddSession={vi.fn()}
         onRemoveSession={vi.fn()}
-        onRenameSession={vi.fn()}
         waitingSessionIds={["s2"]}
       />,
     );
-    const s2Tab = screen.getByText("Chat 2").closest("button");
+    const s2Tab = screen.getByText("Chat 2").closest("[role=tab]");
     expect(s2Tab?.querySelector("[data-processing]")).toBeInTheDocument();
   });
 });

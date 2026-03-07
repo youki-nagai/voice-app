@@ -7,7 +7,6 @@ interface SessionTabsProps {
   onSelectSession: (id: string) => void;
   onAddSession: () => void;
   onRemoveSession: (id: string) => void;
-  onRenameSession: (id: string, name: string) => void;
   waitingSessionIds: string[];
 }
 
@@ -28,16 +27,20 @@ export function SessionTabs({
         const isWaiting = waitingSessionIds.includes(session.id);
 
         return (
-          <button
+          <div
             key={session.id}
-            type="button"
+            role="tab"
+            tabIndex={0}
             data-active={isActive}
-            className={`group relative flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs transition-colors ${
+            className={`group relative flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs transition-colors ${
               isActive
                 ? "bg-accent text-accent-foreground"
                 : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
             }`}
             onClick={() => onSelectSession(session.id)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") onSelectSession(session.id);
+            }}
           >
             {isWaiting && (
               <span
@@ -47,25 +50,19 @@ export function SessionTabs({
             )}
             <span>{session.name}</span>
             {canClose && (
-              <span
-                role="button"
+              <button
+                type="button"
                 title="チャットを閉じる"
-                className="ml-0.5 rounded p-0.5 opacity-0 transition-opacity hover:bg-background/50 group-hover:opacity-100"
+                className="ml-0.5 rounded border-0 bg-transparent p-0.5 opacity-0 transition-opacity hover:bg-background/50 group-hover:opacity-100"
                 onClick={(e) => {
                   e.stopPropagation();
                   onRemoveSession(session.id);
                 }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.stopPropagation();
-                    onRemoveSession(session.id);
-                  }
-                }}
               >
                 <X className="h-3 w-3" />
-              </span>
+              </button>
             )}
-          </button>
+          </div>
         );
       })}
       <button

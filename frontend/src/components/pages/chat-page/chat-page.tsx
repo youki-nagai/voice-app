@@ -54,31 +54,6 @@ export function ChatPage() {
         case "ai_done":
           chat.finalizeAiMessage(sid);
           break;
-        case "test_result":
-          if (msg.success) {
-            chat.addMessage(
-              sid,
-              `テスト OK (passed: ${msg.passed}, failed: ${msg.failed})`,
-              "test-pass",
-            );
-          } else {
-            chat.addMessage(
-              sid,
-              `テスト NG (passed: ${msg.passed}, failed: ${msg.failed})\n${msg.output || ""}`,
-              "test-fail",
-            );
-          }
-          break;
-        case "lint_result":
-          chat.addMessage(
-            sid,
-            msg.success ? "lint OK" : `lint NG\n${msg.output || ""}`,
-            msg.success ? "test-pass" : "test-fail",
-          );
-          break;
-        case "verify_failed":
-          chat.addMessage(sid, msg.text, "verify-failed");
-          break;
         case "complete":
           chat.setIsWaitingForAI(sid, false);
           chat.setProcessingText(sid, null);
@@ -193,10 +168,7 @@ export function ChatPage() {
         if (!file) return;
         const reader = new FileReader();
         reader.onload = () => {
-          setPendingImageUrls((prev) => [
-            ...prev,
-            reader.result as string,
-          ]);
+          setPendingImageUrls((prev) => [...prev, reader.result as string]);
         };
         reader.readAsDataURL(file);
         return;
@@ -233,9 +205,7 @@ export function ChatPage() {
   }
 
   // Build display timeline with interim text appended
-  const displayTimeline: TimelineItem[] = [
-    ...chat.getTimeline(activeId),
-  ];
+  const displayTimeline: TimelineItem[] = [...chat.getTimeline(activeId)];
   if (interimText) {
     displayTimeline.push({
       kind: "message",
@@ -274,7 +244,6 @@ export function ChatPage() {
       onSelectSession={sessionManager.setActiveSession}
       onAddSession={sessionManager.addSession}
       onRemoveSession={handleRemoveSession}
-      onRenameSession={sessionManager.renameSession}
       waitingSessionIds={waitingSessionIds}
     />
   );

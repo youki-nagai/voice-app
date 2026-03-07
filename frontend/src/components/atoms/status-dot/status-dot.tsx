@@ -4,9 +4,7 @@ export type StatusDotStatus =
   | "connected"
   | "recording"
   | "processing"
-  | "error"
-  | "ok"
-  | "warn";
+  | "error";
 
 interface StatusDotProps {
   status: StatusDotStatus;
@@ -18,8 +16,6 @@ const statusStyles: Record<StatusDotStatus, string> = {
   processing:
     "bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.4)] animate-pulse",
   error: "bg-red-500",
-  ok: "bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.4)]",
-  warn: "bg-amber-500",
 };
 
 export function StatusDot({ status }: StatusDotProps) {
