@@ -136,12 +136,14 @@ wait_for_server 5173
 echo "Server restarted (backend: 8000, frontend: 5173)."
 echo ""
 
-echo "=== Step 9: Worktree cleanup ==="
+echo "=== Step 9: Post-deploy guidance ==="
 if [ "$REPO_ROOT" != "$MAIN_REPO" ]; then
-    git -C "$MAIN_REPO" worktree remove "$REPO_ROOT" --force
-    echo "Worktree removed: $REPO_ROOT"
+    echo "ワークツリーから実行されました。メインリポジトリに移動してください:"
     echo ""
     echo ">>> cd $MAIN_REPO <<<"
+    echo ""
+    echo "ワークツリーの削除は手動で行ってください:"
+    echo "  git -C $MAIN_REPO worktree remove $REPO_ROOT --force"
 else
     echo "Main repo - no worktree to clean up."
 fi
