@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
-import { useChat } from "../../../hooks/use-chat";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useMultiChat } from "../../../hooks/use-multi-chat";
+import { useSessionManager } from "../../../hooks/use-session-manager";
 import { useSpeechRecognition } from "../../../hooks/use-speech-recognition";
 import { useSSE } from "../../../hooks/use-sse";
 import { detectModelCommand, getModelLabel } from "../../../types/commands";
@@ -14,41 +15,47 @@ import { ChatTemplate } from "../../templates/chat-template/chat-template";
 export function ChatPage() {
   const [selectedModel, setSelectedModel] =
     useState<ModelId>("claude-opus-4-6");
-  const [isWaitingForAI, setIsWaitingForAI] = useState(false);
   const [textValue, setTextValue] = useState("");
   const [pendingImageUrls, setPendingImageUrls] = useState<string[]>([]);
   const [interimText, setInterimText] = useState<string | null>(null);
 
-  const chat = useChat();
+  const sessionManager = useSessionManager();
+  const chat = useMultiChat();
+  const activeIdRef = useRef(sessionManager.activeSessionId);
+  activeIdRef.current = sessionManager.activeSessionId;
+  const sendingSessionIdRef = useRef<string | null>(null);
 
   const handleServerMessage = useCallback(
     (msg: ServerMessage) => {
+      const sid = sendingSessionIdRef.current ?? activeIdRef.current;
       switch (msg.type) {
         case "status":
-          chat.setProcessingText(msg.text);
-          setIsWaitingForAI(true);
+          chat.setProcessingText(sid, msg.text);
+          chat.setIsWaitingForAI(sid, true);
           break;
         case "tool_action":
-          chat.setProcessingText(null);
-          chat.addToolAction(msg.tool, msg.text);
-          setIsWaitingForAI(true);
+          chat.setProcessingText(sid, null);
+          chat.addToolAction(sid, msg.tool, msg.text);
+          chat.setIsWaitingForAI(sid, true);
           break;
         case "ai_chunk":
-          chat.setProcessingText(null);
-          chat.finalizeActionLog();
-          chat.appendAiChunk(msg.text);
+          chat.setProcessingText(sid, null);
+          chat.finalizeActionLog(sid);
+          chat.appendAiChunk(sid, msg.text);
           break;
         case "ai_done":
-          chat.finalizeAiMessage();
+          chat.finalizeAiMessage(sid);
           break;
         case "test_result":
           if (msg.success) {
             chat.addMessage(
+              sid,
               `テスト OK (passed: ${msg.passed}, failed: ${msg.failed})`,
               "test-pass",
             );
           } else {
             chat.addMessage(
+              sid,
               `テスト NG (passed: ${msg.passed}, failed: ${msg.failed})\n${msg.output || ""}`,
               "test-fail",
             );
@@ -56,23 +63,26 @@ export function ChatPage() {
           break;
         case "lint_result":
           chat.addMessage(
+            sid,
             msg.success ? "lint OK" : `lint NG\n${msg.output || ""}`,
             msg.success ? "test-pass" : "test-fail",
           );
           break;
         case "verify_failed":
-          chat.addMessage(msg.text, "verify-failed");
+          chat.addMessage(sid, msg.text, "verify-failed");
           break;
         case "complete":
-          setIsWaitingForAI(false);
-          chat.setProcessingText(null);
-          chat.finalizeActionLog();
+          chat.setIsWaitingForAI(sid, false);
+          chat.setProcessingText(sid, null);
+          chat.finalizeActionLog(sid);
+          sendingSessionIdRef.current = null;
           break;
         case "error":
-          setIsWaitingForAI(false);
-          chat.setProcessingText(null);
-          chat.finalizeActionLog();
-          chat.addMessage(msg.text, "error");
+          chat.setIsWaitingForAI(sid, false);
+          chat.setProcessingText(sid, null);
+          chat.finalizeActionLog(sid);
+          chat.addMessage(sid, msg.text, "error");
+          sendingSessionIdRef.current = null;
           break;
       }
     },
@@ -82,12 +92,16 @@ export function ChatPage() {
   const sse = useSSE({
     onMessage: handleServerMessage,
     onError: (error) => {
-      setIsWaitingForAI(false);
-      chat.setProcessingText(null);
-      chat.addMessage(`エラー: ${error}`, "error");
+      const sid = sendingSessionIdRef.current ?? activeIdRef.current;
+      chat.setIsWaitingForAI(sid, false);
+      chat.setProcessingText(sid, null);
+      chat.addMessage(sid, `エラー: ${error}`, "error");
+      sendingSessionIdRef.current = null;
     },
     onRetry: (retryCount, delay) => {
+      const sid = sendingSessionIdRef.current ?? activeIdRef.current;
       chat.addMessage(
+        sid,
         `ネットワークエラー。${delay / 1000}秒後にリトライします... (${retryCount}/${3})`,
         "error",
       );
@@ -96,21 +110,23 @@ export function ChatPage() {
 
   const switchModel = useCallback(
     (model: ModelId) => {
+      const sid = activeIdRef.current;
       setSelectedModel(model);
-      chat.addMessage(`モデル切替: ${getModelLabel(model)}`, "system");
+      chat.addMessage(sid, `モデル切替: ${getModelLabel(model)}`, "system");
     },
     [chat],
   );
 
   const sendMessage = useCallback(
     (text: string, skipUserDisplay = false) => {
-      if (!text.trim() || isWaitingForAI) return;
+      const sid = activeIdRef.current;
+      if (!text.trim() || chat.getIsWaitingForAI(sid)) return;
 
       const imagesToSend = [...pendingImageUrls];
       setPendingImageUrls([]);
 
       if (!skipUserDisplay) {
-        chat.addMessage(text, "user", imagesToSend[0]);
+        chat.addMessage(sid, text, "user", imagesToSend[0]);
       }
 
       const modelCmd = detectModelCommand(text);
@@ -119,17 +135,19 @@ export function ChatPage() {
         return;
       }
 
-      chat.setProcessingText("送信中...");
-      setIsWaitingForAI(true);
-      sse.sendStream(text, selectedModel, imagesToSend);
+      chat.setProcessingText(sid, "送信中...");
+      chat.setIsWaitingForAI(sid, true);
+      sendingSessionIdRef.current = sid;
+      sse.sendStream(text, selectedModel, imagesToSend, sid);
     },
-    [isWaitingForAI, chat, selectedModel, pendingImageUrls, sse, switchModel],
+    [chat, selectedModel, pendingImageUrls, sse, switchModel],
   );
 
   const handleSpeechComplete = useCallback(
     (transcript: string) => {
+      const sid = activeIdRef.current;
       setInterimText(null);
-      chat.addMessage(transcript, "user");
+      chat.addMessage(sid, transcript, "user");
       sendMessage(transcript, true);
     },
     [chat, sendMessage],
@@ -141,7 +159,8 @@ export function ChatPage() {
       setInterimText(text);
     },
     onError: (error) => {
-      chat.addMessage(error, "error");
+      const sid = activeIdRef.current;
+      chat.addMessage(sid, error, "error");
     },
   });
 
@@ -177,11 +196,22 @@ export function ChatPage() {
     }
   }, []);
 
+  const handleRemoveSession = useCallback(
+    (id: string) => {
+      sessionManager.removeSession(id);
+      chat.removeSessionData(id);
+    },
+    [sessionManager, chat],
+  );
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: initialization effect - runs once on mount
   useEffect(() => {
     const timer = setTimeout(() => speech.setRecordingEnabled(true), 500);
     return () => clearTimeout(timer);
   }, []);
+
+  const activeId = sessionManager.activeSessionId;
+  const isWaitingForAI = chat.getIsWaitingForAI(activeId);
 
   // Compute app status
   let appStatus: StatusDotStatus = "connected";
@@ -195,13 +225,20 @@ export function ChatPage() {
   }
 
   // Build display timeline with interim text appended
-  const displayTimeline: TimelineItem[] = [...chat.timeline];
+  const displayTimeline: TimelineItem[] = [
+    ...chat.getTimeline(activeId),
+  ];
   if (interimText) {
     displayTimeline.push({
       kind: "message",
       data: { id: "interim", type: "interim", text: interimText },
     });
   }
+
+  // Collect session IDs that are waiting for AI
+  const waitingSessionIds = sessionManager.sessions
+    .filter((s) => chat.getIsWaitingForAI(s.id))
+    .map((s) => s.id);
 
   return (
     <ChatTemplate
@@ -222,6 +259,13 @@ export function ChatPage() {
       onImageRemove={(index) =>
         setPendingImageUrls((prev) => prev.filter((_, i) => i !== index))
       }
+      sessions={sessionManager.sessions}
+      activeSessionId={activeId}
+      onSelectSession={sessionManager.setActiveSession}
+      onAddSession={sessionManager.addSession}
+      onRemoveSession={handleRemoveSession}
+      onRenameSession={sessionManager.renameSession}
+      waitingSessionIds={waitingSessionIds}
     />
   );
 }

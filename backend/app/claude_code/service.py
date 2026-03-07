@@ -30,7 +30,7 @@ def _format_tool_action(name: str, inp: dict) -> str:
 
 
 class ClaudeCodeService:
-    _session_id: ClassVar[str | None] = None
+    _session_ids: ClassVar[dict[str, str]] = {}
 
     def __init__(self, project_root: str):
         self._project_root = Path(project_root)
@@ -46,11 +46,16 @@ class ClaudeCodeService:
         raise RuntimeError("claude コマンドが見つかりません。Claude Code CLIをインストールしてください。")
 
     @staticmethod
-    def _update_session_id(event: dict) -> None:
-        if session_id := event.get("session_id"):
-            ClaudeCodeService._session_id = session_id
+    def _update_session_id(event: dict, session_key: str) -> None:
+        if claude_session_id := event.get("session_id"):
+            ClaudeCodeService._session_ids[session_key] = claude_session_id
 
-    async def execute(self, prompt: str, model: str = "claude-opus-4-6") -> AsyncGenerator[dict]:
+    async def execute(
+        self,
+        prompt: str,
+        model: str = "claude-opus-4-6",
+        session_id: str = "default",
+    ) -> AsyncGenerator[dict]:
         claude_bin = self._find_claude_binary()
         cmd = [
             claude_bin,
@@ -63,8 +68,9 @@ class ClaudeCodeService:
             "--verbose",
             "--dangerously-skip-permissions",
         ]
-        if ClaudeCodeService._session_id:
-            cmd.extend(["--resume", ClaudeCodeService._session_id])
+        claude_session_id = ClaudeCodeService._session_ids.get(session_id)
+        if claude_session_id:
+            cmd.extend(["--resume", claude_session_id])
 
         env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
 
@@ -94,7 +100,7 @@ class ClaudeCodeService:
             event_type = event.get("type")
 
             if event_type == "system":
-                self._update_session_id(event)
+                self._update_session_id(event, session_id)
 
             elif event_type == "assistant":
                 message = event.get("message", {})
@@ -118,7 +124,7 @@ class ClaudeCodeService:
                     yield {"type": "tool_action", "tool": name, "text": text}
 
             elif event_type == "result":
-                self._update_session_id(event)
+                self._update_session_id(event, session_id)
                 yield {"type": "ai_done", "explanation": event.get("result", "")}
 
         await proc.wait()

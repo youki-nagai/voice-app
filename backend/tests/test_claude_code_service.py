@@ -29,7 +29,7 @@ class TestFindClaudeBinary:
 class TestClaudeCodeExecute:
     def setup_method(self):
         self._service = ClaudeCodeService(project_root="/tmp/test")
-        ClaudeCodeService._session_id = None
+        ClaudeCodeService._session_ids = {}
 
     def _make_proc(self, stdout_lines: list[str], returncode: int = 0):
         proc = AsyncMock()
@@ -53,7 +53,7 @@ class TestClaudeCodeExecute:
 
         events = [e async for e in self._service.execute("test")]
 
-        assert ClaudeCodeService._session_id == "sess-123"
+        assert ClaudeCodeService._session_ids["default"] == "sess-123"
         assert events == []
 
     @patch.object(ClaudeCodeService, "_find_claude_binary", return_value="/usr/local/bin/claude")
@@ -239,7 +239,7 @@ class TestClaudeCodeExecute:
         assert len(events) == 1
         assert events[0]["type"] == "ai_done"
         assert events[0]["explanation"] == "All done"
-        assert ClaudeCodeService._session_id == "sess-456"
+        assert ClaudeCodeService._session_ids["default"] == "sess-456"
 
     @patch.object(ClaudeCodeService, "_find_claude_binary", return_value="/usr/local/bin/claude")
     @patch("asyncio.create_subprocess_exec")
@@ -276,7 +276,7 @@ class TestClaudeCodeExecute:
     @patch.object(ClaudeCodeService, "_find_claude_binary", return_value="/usr/local/bin/claude")
     @patch("asyncio.create_subprocess_exec")
     async def test_given_existing_session_when_execute_then_resumes(self, mock_exec, _mock_bin):
-        ClaudeCodeService._session_id = "existing-session"
+        ClaudeCodeService._session_ids["default"] = "existing-session"
         proc = self._make_proc([json.dumps({"type": "result", "result": "ok"})])
         mock_exec.return_value = proc
 
@@ -360,3 +360,29 @@ class TestClaudeCodeExecute:
         events = [e async for e in self._service.execute("test")]
 
         assert events[0]["text"] == "multiedit: /tmp/multi.py"
+
+    @patch.object(ClaudeCodeService, "_find_claude_binary", return_value="/usr/local/bin/claude")
+    @patch("asyncio.create_subprocess_exec")
+    async def test_given_custom_session_id_when_execute_then_stores_per_session(self, mock_exec, _mock_bin):
+        proc = self._make_proc([json.dumps({"type": "system", "session_id": "sess-a"})])
+        mock_exec.return_value = proc
+
+        async for _ in self._service.execute("test", session_id="chat-1"):
+            pass
+
+        assert ClaudeCodeService._session_ids["chat-1"] == "sess-a"
+        assert "default" not in ClaudeCodeService._session_ids
+
+    @patch.object(ClaudeCodeService, "_find_claude_binary", return_value="/usr/local/bin/claude")
+    @patch("asyncio.create_subprocess_exec")
+    async def test_given_existing_session_for_key_when_execute_then_resumes_correct_session(self, mock_exec, _mock_bin):
+        ClaudeCodeService._session_ids["chat-2"] = "sess-b"
+        proc = self._make_proc([json.dumps({"type": "result", "result": "ok"})])
+        mock_exec.return_value = proc
+
+        async for _ in self._service.execute("test", session_id="chat-2"):
+            pass
+
+        call_args = mock_exec.call_args[0]
+        assert "--resume" in call_args
+        assert "sess-b" in call_args
