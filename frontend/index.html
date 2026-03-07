@@ -173,6 +173,11 @@
             border: 1px solid #2a2a3e;
             border-radius: 8px;
             overflow: hidden;
+            transition: border-color 0.3s;
+        }
+
+        .action-log details.running {
+            border-color: #3a3a5e;
         }
 
         .action-log summary {
@@ -184,10 +189,40 @@
             align-items: center;
             gap: 8px;
             user-select: none;
+            list-style: none;
         }
+
+        .action-log summary::-webkit-details-marker { display: none; }
 
         .action-log summary:hover {
             background: #1a1a2e;
+        }
+
+        .action-log summary .action-log-chevron {
+            font-size: 10px;
+            transition: transform 0.2s;
+            color: #6666a8;
+            flex-shrink: 0;
+        }
+
+        .action-log details[open] summary .action-log-chevron {
+            transform: rotate(90deg);
+        }
+
+        .action-log summary .action-log-title {
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+
+        .action-log summary .action-log-current {
+            color: #6a6a9e;
+            font-size: 11px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+            min-width: 0;
+            font-family: monospace;
         }
 
         .action-log summary .action-count {
@@ -196,7 +231,7 @@
             font-size: 10px;
             padding: 1px 6px;
             border-radius: 10px;
-            margin-left: auto;
+            flex-shrink: 0;
         }
 
         .action-log .action-list {
@@ -206,22 +241,61 @@
         }
 
         .action-log .action-item {
-            padding: 3px 12px 3px 28px;
+            padding: 3px 12px;
             font-size: 11px;
             font-family: monospace;
             color: #7a7a9e;
             line-height: 1.5;
             white-space: pre-wrap;
             word-break: break-all;
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+            animation: actionFadeIn 0.15s ease-out;
         }
 
-        .action-log .action-item.tool-bash { color: #c8a868; }
-        .action-log .action-item.tool-write,
-        .action-log .action-item.tool-edit,
-        .action-log .action-item.tool-multiedit { color: #68c888; }
-        .action-log .action-item.tool-read { color: #88b8e8; }
-        .action-log .action-item.tool-glob,
-        .action-log .action-item.tool-grep { color: #b888d8; }
+        @keyframes actionFadeIn {
+            from { opacity: 0; transform: translateY(-2px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .action-log .action-item .action-status {
+            flex-shrink: 0;
+            width: 14px;
+            text-align: center;
+            font-size: 10px;
+        }
+
+        .action-log .action-item.done .action-status { color: #4a9e4a; }
+
+        .action-log .action-item .action-icon {
+            flex-shrink: 0;
+            width: 16px;
+            text-align: center;
+        }
+
+        .action-log .action-item .action-text {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .action-log .action-item.tool-bash .action-text { color: #c8a868; }
+        .action-log .action-item.tool-write .action-text,
+        .action-log .action-item.tool-edit .action-text,
+        .action-log .action-item.tool-multiedit .action-text { color: #68c888; }
+        .action-log .action-item.tool-read .action-text { color: #88b8e8; }
+        .action-log .action-item.tool-glob .action-text,
+        .action-log .action-item.tool-grep .action-text { color: #b888d8; }
+
+        .spinner-small {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border: 1.5px solid #444;
+            border-top: 1.5px solid #f59e0b;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
 
         #controls {
             padding: 16px 20px;
@@ -512,23 +586,47 @@
             processingElements = [];
         }
 
+        const TOOL_ICONS = {
+            bash: '\u26A1', read: '\uD83D\uDCD6', write: '\u270F\uFE0F', edit: '\u270F\uFE0F',
+            multiedit: '\u270F\uFE0F', glob: '\uD83D\uDD0D', grep: '\uD83D\uDD0D',
+        };
+
+        function getToolIcon(tool) {
+            return TOOL_ICONS[tool.toLowerCase()] || '\uD83D\uDD27';
+        }
+
         function appendToolAction(tool, text) {
             if (!currentActionLog) {
                 currentActionLog = document.createElement('div');
                 currentActionLog.className = 'action-log';
                 const details = document.createElement('details');
                 details.open = true;
+                details.className = 'running';
                 const summary = document.createElement('summary');
+
+                const chevron = document.createElement('span');
+                chevron.className = 'action-log-chevron';
+                chevron.textContent = '\u25B6';
+                summary.appendChild(chevron);
+
                 const spinnerSpan = document.createElement('span');
                 spinnerSpan.className = 'spinner';
                 summary.appendChild(spinnerSpan);
-                const labelSpan = document.createElement('span');
-                labelSpan.textContent = 'Actions';
-                summary.appendChild(labelSpan);
+
+                const titleSpan = document.createElement('span');
+                titleSpan.className = 'action-log-title';
+                titleSpan.textContent = 'Claude \u306E\u4F5C\u696D';
+                summary.appendChild(titleSpan);
+
+                const currentSpan = document.createElement('span');
+                currentSpan.className = 'action-log-current';
+                summary.appendChild(currentSpan);
+
                 const countSpan = document.createElement('span');
                 countSpan.className = 'action-count';
                 countSpan.textContent = '0';
                 summary.appendChild(countSpan);
+
                 details.appendChild(summary);
                 const list = document.createElement('div');
                 list.className = 'action-list';
@@ -537,25 +635,67 @@
                 chat.appendChild(currentActionLog);
             }
 
+            // Mark previous running items as done
+            const prevRunning = currentActionLog.querySelectorAll('.action-item.running');
+            prevRunning.forEach(item => {
+                item.classList.remove('running');
+                item.classList.add('done');
+                const status = item.querySelector('.action-status');
+                if (status) status.textContent = '\u2713';
+            });
+
             const list = currentActionLog.querySelector('.action-list');
             const item = document.createElement('div');
-            item.className = `action-item tool-${tool.toLowerCase()}`;
-            item.textContent = text;
+            item.className = `action-item running tool-${tool.toLowerCase()}`;
+
+            const statusSpan = document.createElement('span');
+            statusSpan.className = 'action-status';
+            const miniSpinner = document.createElement('span');
+            miniSpinner.className = 'spinner-small';
+            statusSpan.appendChild(miniSpinner);
+            item.appendChild(statusSpan);
+
+            const iconSpan = document.createElement('span');
+            iconSpan.className = 'action-icon';
+            iconSpan.textContent = getToolIcon(tool);
+            item.appendChild(iconSpan);
+
+            const textSpan = document.createElement('span');
+            textSpan.className = 'action-text';
+            textSpan.textContent = text;
+            item.appendChild(textSpan);
+
             list.appendChild(item);
 
             const countSpan = currentActionLog.querySelector('.action-count');
-            const count = list.children.length;
-            countSpan.textContent = count;
+            countSpan.textContent = list.children.length;
+
+            const currentSpan = currentActionLog.querySelector('.action-log-current');
+            currentSpan.textContent = text;
 
             chat.scrollTop = chat.scrollHeight;
         }
 
         function finalizeActionLog() {
             if (currentActionLog) {
+                const runningItems = currentActionLog.querySelectorAll('.action-item.running');
+                runningItems.forEach(item => {
+                    item.classList.remove('running');
+                    item.classList.add('done');
+                    const status = item.querySelector('.action-status');
+                    if (status) status.textContent = '\u2713';
+                });
+
                 const details = currentActionLog.querySelector('details');
                 details.open = false;
-                const spinner = currentActionLog.querySelector('.spinner');
+                details.classList.remove('running');
+
+                const spinner = currentActionLog.querySelector('summary > .spinner');
                 if (spinner) spinner.remove();
+
+                const currentSpan = currentActionLog.querySelector('.action-log-current');
+                if (currentSpan) currentSpan.textContent = '\u5B8C\u4E86';
+
                 currentActionLog = null;
             }
         }
