@@ -36,7 +36,9 @@ describe("header", () => {
   it("delegates model change", async () => {
     const user = userEvent.setup();
     const onModelChange = vi.fn();
-    renderWithTooltip(<Header {...defaultProps} onModelChange={onModelChange} />);
+    renderWithTooltip(
+      <Header {...defaultProps} onModelChange={onModelChange} />,
+    );
     await user.click(screen.getByRole("radio", { name: "Sonnet" }));
     expect(onModelChange).toHaveBeenCalledWith("claude-sonnet-4-6");
   });

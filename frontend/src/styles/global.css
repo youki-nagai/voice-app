@@ -95,6 +95,65 @@
   }
 }
 
+/* Mic button animations */
+@keyframes mic-countdown {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    /* 2 * PI * 25.5 (radius) ≈ 160.22 */
+    stroke-dashoffset: 160.22;
+  }
+}
+
+@keyframes mic-sent-ring {
+  0% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+
+@keyframes mic-sent-glow {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes mic-check-pop {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Processing indicator animation */
+@keyframes processing-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .dark {
   --sidebar: hsl(240 5.9% 10%);
   --sidebar-foreground: hsl(240 4.8% 95.9%);

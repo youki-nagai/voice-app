@@ -2,7 +2,6 @@ import { ChevronDown } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { TimelineItem } from "../../../types/messages";
-import { Spinner } from "../../atoms/spinner/spinner";
 import { ChatMessage } from "../../molecules/chat-message/chat-message";
 import { ActionLog } from "../action-log/action-log";
 
@@ -73,9 +72,31 @@ export function ChatArea({ timeline }: ChatAreaProps) {
               return (
                 <div
                   key={`processing-${item.text}`}
-                  className="flex items-center justify-center gap-2 self-center rounded-lg bg-orange-950 px-3.5 py-2.5 text-xs text-amber-500"
+                  className="flex items-center justify-center gap-2.5 self-center rounded-full border border-amber-500/20 bg-amber-950/60 px-4 py-2 text-xs text-amber-400 backdrop-blur-sm"
                 >
-                  <Spinner />
+                  <div className="flex gap-1">
+                    <span
+                      className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400"
+                      style={{
+                        animation: "processing-dot 1.4s infinite ease-in-out",
+                        animationDelay: "0ms",
+                      }}
+                    />
+                    <span
+                      className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400"
+                      style={{
+                        animation: "processing-dot 1.4s infinite ease-in-out",
+                        animationDelay: "200ms",
+                      }}
+                    />
+                    <span
+                      className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400"
+                      style={{
+                        animation: "processing-dot 1.4s infinite ease-in-out",
+                        animationDelay: "400ms",
+                      }}
+                    />
+                  </div>
                   <span>{item.text}</span>
                 </div>
               );

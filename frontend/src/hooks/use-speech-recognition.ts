@@ -3,6 +3,8 @@ import { useCallbackRef } from "./use-callback-ref";
 
 export const DEFAULT_SILENCE_DELAY = 1000;
 
+export type SilenceState = "idle" | "countdown" | "sent";
+
 interface SpeechRecognitionOptions {
   onSpeechComplete: (transcript: string) => void;
   onInterimUpdate?: (text: string) => void;
@@ -17,11 +19,13 @@ export function useSpeechRecognition({
   silenceDelay = DEFAULT_SILENCE_DELAY,
 }: SpeechRecognitionOptions) {
   const [isRecording, setIsRecording] = useState(false);
-  const [silenceTimerText, setSilenceTimerText] = useState("");
+  const [silenceState, setSilenceState] = useState<SilenceState>("idle");
+  const [countdownKey, setCountdownKey] = useState(0);
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const finalTranscriptRef = useRef("");
   const silenceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sentTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const enabledRef = useRef(false);
   const visibleRef = useRef(!document.hidden && document.hasFocus());
   const silenceDelayRef = useRef(silenceDelay);
@@ -42,19 +46,27 @@ export function useSpeechRecognition({
   const sendVoiceComplete = useCallback(() => {
     const text = finalTranscriptRef.current.trim();
     if (!text) {
-      setSilenceTimerText("");
+      setSilenceState("idle");
       return;
     }
     onSpeechCompleteRef.current(text);
     finalTranscriptRef.current = "";
-    setSilenceTimerText("送信済み");
+    setSilenceState("sent");
+
+    if (sentTimeoutRef.current) {
+      clearTimeout(sentTimeoutRef.current);
+    }
+    sentTimeoutRef.current = setTimeout(() => {
+      setSilenceState((prev) => (prev === "sent" ? "idle" : prev));
+    }, 1500);
   }, [onSpeechCompleteRef]);
 
   const resetSilenceTimer = useCallback(() => {
     if (silenceTimeoutRef.current) {
       clearTimeout(silenceTimeoutRef.current);
     }
-    setSilenceTimerText("話し中...");
+    setSilenceState("countdown");
+    setCountdownKey((k) => k + 1);
     silenceTimeoutRef.current = setTimeout(() => {
       sendVoiceComplete();
     }, silenceDelayRef.current);
@@ -126,7 +138,7 @@ export function useSpeechRecognition({
 
     setIsRecording(true);
     finalTranscriptRef.current = "";
-    setSilenceTimerText("");
+    setSilenceState("idle");
 
     try {
       recognitionRef.current.start();
@@ -137,7 +149,7 @@ export function useSpeechRecognition({
 
   const stopActualRecognition = useCallback(() => {
     setIsRecording(false);
-    setSilenceTimerText("");
+    setSilenceState("idle");
 
     if (silenceTimeoutRef.current) {
       clearTimeout(silenceTimeoutRef.current);
@@ -196,6 +208,9 @@ export function useSpeechRecognition({
       if (silenceTimeoutRef.current) {
         clearTimeout(silenceTimeoutRef.current);
       }
+      if (sentTimeoutRef.current) {
+        clearTimeout(sentTimeoutRef.current);
+      }
       if (recognitionRef.current) {
         recognitionRef.current.stop();
       }
@@ -205,7 +220,8 @@ export function useSpeechRecognition({
   return {
     isRecording,
     isSupported,
-    silenceTimerText,
+    silenceState,
+    countdownKey,
     setRecordingEnabled,
   };
 }
