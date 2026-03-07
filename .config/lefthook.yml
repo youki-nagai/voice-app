@@ -18,6 +18,10 @@ pre-commit:
       glob: "backend/**/*"
       run: cd backend && uv run pytest tests/ -x -q --ignore=tests/test_e2e.py
       fail_text: "Backend tests failed."
+    protect-shadcn:
+      glob: "frontend/src/components/ui/**"
+      run: ./.config/scripts/protect-shadcn.sh {staged_files}
+      fail_text: "shadcn コンポーネント (frontend/src/components/ui/) の変更は禁止"
     filename-check:
       run: bunx @ls-lint/ls-lint
       fail_text: "Filename naming convention violated."
