@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Usage: ./scripts/deploy.sh <branch-name> <commit-message> [worktree-name]
-# 全ステップを自動実行: テスト→lint→E2E→ブランチ→コミット→PR→マージ→サーバー再起動→ワークツリー削除
+# Usage: ./scripts/deploy.sh <branch-name> <commit-message>
+# 全ステップを自動実行: テスト→lint→E2E→ブランチ→コミット→PR→マージ→サーバー再起動
 
-BRANCH="${1:?Usage: $0 <branch-name> <commit-message> [worktree-name]}"
-MESSAGE="${2:?Usage: $0 <branch-name> <commit-message> [worktree-name]}"
-WORKTREE="${3:-}"
+BRANCH="${1:?Usage: $0 <branch-name> <commit-message>}"
+MESSAGE="${2:?Usage: $0 <branch-name> <commit-message>}"
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
@@ -119,21 +118,5 @@ cd ..
 wait_for_server 8000
 echo "Server restarted."
 echo ""
-
-if [ -n "$WORKTREE" ]; then
-    WORKTREE_PATH="$MAIN_REPO/.claude/worktrees/$WORKTREE"
-    if [ -d "$WORKTREE_PATH" ]; then
-        echo "=== Step 8: Worktree cleanup ==="
-        git -C "$MAIN_REPO" worktree remove --force "$WORKTREE_PATH"
-        WORKTREE_BRANCH="worktree-$WORKTREE"
-        if git -C "$MAIN_REPO" rev-parse --verify "$WORKTREE_BRANCH" >/dev/null 2>&1; then
-            git -C "$MAIN_REPO" branch -D "$WORKTREE_BRANCH"
-        fi
-        echo "Worktree '$WORKTREE' を削除しました。"
-        echo ""
-    else
-        echo "WARNING: ワークツリー '$WORKTREE_PATH' が見つかりません。スキップします。" >&2
-    fi
-fi
 
 echo "=== ALL STEPS COMPLETE ==="

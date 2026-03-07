@@ -36,6 +36,6 @@ verify:
 	cd backend && uv run pytest tests/ -v && uv run ruff check . && uv run ruff format --check . && E2E_BASE_URL="$(E2E_BASE_URL)" uv run pytest tests/test_e2e.py -v
 
 deploy:
-	@test -n "$(BRANCH)" || (echo "Usage: make deploy BRANCH=<name> MSG=<message> [WORKTREE=<name>]" && exit 1)
-	@test -n "$(MSG)" || (echo "Usage: make deploy BRANCH=<name> MSG=<message> [WORKTREE=<name>]" && exit 1)
-	./scripts/deploy.sh "$(BRANCH)" "$(MSG)" "$(WORKTREE)"
+	@test -n "$(BRANCH)" || (echo "Usage: make deploy BRANCH=<name> MSG=<message>" && exit 1)
+	@test -n "$(MSG)" || (echo "Usage: make deploy BRANCH=<name> MSG=<message>" && exit 1)
+	./scripts/deploy.sh "$(BRANCH)" "$(MSG)"
