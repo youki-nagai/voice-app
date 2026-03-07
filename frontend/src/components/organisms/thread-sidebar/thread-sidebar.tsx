@@ -1,9 +1,4 @@
-import {
-  MessageSquare,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Plus,
-} from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 export interface ThreadSummary {
@@ -119,8 +114,9 @@ export function ThreadSidebar({
           </div>
         ) : (
           <ul className="py-1">
-            {threads.map((thread) => {
+            {threads.map((thread, index) => {
               const isActive = thread.session_id === activeSessionId;
+              const number = index + 1;
               return (
                 <li key={thread.session_id}>
                   <button
@@ -132,7 +128,9 @@ export function ThreadSidebar({
                         : "text-muted-foreground hover:bg-zinc-800 hover:text-foreground"
                     }`}
                   >
-                    <MessageSquare className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    <span className="mt-0.5 w-4 shrink-0 text-center text-[10px] font-bold opacity-60">
+                      {number}
+                    </span>
                     <div className="min-w-0 flex-1">
                       <div className="truncate">
                         {thread.title || "無題のスレッド"}
