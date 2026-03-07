@@ -47,6 +47,7 @@ export interface ChatMessage {
   id: string;
   type: ChatMessageType;
   text: string;
+  imageUrl?: string;
 }
 
 export interface ToolAction {

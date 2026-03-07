@@ -5,6 +5,7 @@ import { Spinner } from "../../atoms/spinner/spinner";
 interface ChatMessageProps {
   type: ChatMessageType;
   text: string;
+  imageUrl?: string;
   isProcessing?: boolean;
 }
 
@@ -20,7 +21,12 @@ const typeStyles: Record<ChatMessageType, string> = {
   "verify-failed": "bg-red-950 self-center text-orange-300 text-xs font-bold",
 };
 
-export function ChatMessage({ type, text, isProcessing }: ChatMessageProps) {
+export function ChatMessage({
+  type,
+  text,
+  imageUrl,
+  isProcessing,
+}: ChatMessageProps) {
   return (
     <div
       className={cn(
@@ -29,6 +35,13 @@ export function ChatMessage({ type, text, isProcessing }: ChatMessageProps) {
       )}
     >
       {isProcessing && <Spinner />}
+      {imageUrl && (
+        <img
+          src={imageUrl}
+          alt="添付画像"
+          className="mb-2 max-h-48 rounded-md"
+        />
+      )}
       <span>{text}</span>
     </div>
   );

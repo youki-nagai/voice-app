@@ -32,6 +32,7 @@ export function ChatArea({ timeline }: ChatAreaProps) {
                 key={item.data.id}
                 type={item.data.type}
                 text={item.data.text}
+                imageUrl={item.data.imageUrl}
               />
             );
           case "action-log":
