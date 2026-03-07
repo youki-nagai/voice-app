@@ -19,8 +19,8 @@ export function useSpeechRecognition({
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const finalTranscriptRef = useRef("");
   const silenceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isRecordingRef = useRef(false);
-  const isWindowFocusedRef = useRef(document.hasFocus());
+  const enabledRef = useRef(false);
+  const visibleRef = useRef(!document.hidden && document.hasFocus());
 
   const SpeechRecognitionAPI =
     typeof window !== "undefined"
@@ -82,9 +82,9 @@ export function useSpeechRecognition({
     };
 
     recognition.onend = () => {
-      if (isRecordingRef.current && isWindowFocusedRef.current) {
+      if (enabledRef.current && visibleRef.current) {
         setTimeout(() => {
-          if (isRecordingRef.current && isWindowFocusedRef.current) {
+          if (enabledRef.current && visibleRef.current) {
             try {
               recognition.start();
             } catch {
@@ -109,13 +109,12 @@ export function useSpeechRecognition({
     return recognition;
   }, [SpeechRecognitionAPI, onInterimUpdate, onError, resetSilenceTimer]);
 
-  const startRecording = useCallback(() => {
+  const startActualRecognition = useCallback(() => {
     if (!recognitionRef.current) {
       recognitionRef.current = setupRecognition();
     }
     if (!recognitionRef.current) return;
 
-    isRecordingRef.current = true;
     setIsRecording(true);
     finalTranscriptRef.current = "";
     setSilenceTimerText("");
@@ -127,8 +126,7 @@ export function useSpeechRecognition({
     }
   }, [setupRecognition]);
 
-  const stopRecording = useCallback(() => {
-    isRecordingRef.current = false;
+  const stopActualRecognition = useCallback(() => {
     setIsRecording(false);
     setSilenceTimerText("");
 
@@ -142,46 +140,49 @@ export function useSpeechRecognition({
     }
   }, []);
 
+  const syncRecognition = useCallback(() => {
+    const shouldRun = enabledRef.current && visibleRef.current;
+    if (shouldRun) {
+      startActualRecognition();
+    } else {
+      stopActualRecognition();
+    }
+  }, [startActualRecognition, stopActualRecognition]);
+
+  const setRecordingEnabled = useCallback(
+    (enabled: boolean) => {
+      enabledRef.current = enabled;
+      if (!enabled) {
+        sendVoiceComplete();
+      }
+      syncRecognition();
+    },
+    [syncRecognition, sendVoiceComplete],
+  );
+
   useEffect(() => {
-    const pauseRecognition = () => {
-      isWindowFocusedRef.current = false;
-      if (!isRecordingRef.current) return;
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-      if (silenceTimeoutRef.current) {
-        clearTimeout(silenceTimeoutRef.current);
-        silenceTimeoutRef.current = null;
-      }
+    const handleBlur = () => {
+      visibleRef.current = false;
+      syncRecognition();
     };
 
-    const resumeRecognition = () => {
-      isWindowFocusedRef.current = true;
-      if (!isRecordingRef.current) return;
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.start();
-        } catch {
-          /* already started */
-        }
-      }
+    const handleFocus = () => {
+      visibleRef.current = true;
+      syncRecognition();
     };
 
     const handleVisibilityChange = () => {
-      if (document.hidden) {
-        pauseRecognition();
-      } else {
-        resumeRecognition();
-      }
+      visibleRef.current = !document.hidden && document.hasFocus();
+      syncRecognition();
     };
 
-    window.addEventListener("blur", pauseRecognition);
-    window.addEventListener("focus", resumeRecognition);
+    window.addEventListener("blur", handleBlur);
+    window.addEventListener("focus", handleFocus);
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      window.removeEventListener("blur", pauseRecognition);
-      window.removeEventListener("focus", resumeRecognition);
+      window.removeEventListener("blur", handleBlur);
+      window.removeEventListener("focus", handleFocus);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       if (silenceTimeoutRef.current) {
         clearTimeout(silenceTimeoutRef.current);
@@ -190,14 +191,12 @@ export function useSpeechRecognition({
         recognitionRef.current.stop();
       }
     };
-  }, []);
+  }, [syncRecognition]);
 
   return {
     isRecording,
     isSupported,
     silenceTimerText,
-    startRecording,
-    stopRecording,
-    sendVoiceComplete,
+    setRecordingEnabled,
   };
 }

@@ -174,12 +174,7 @@ export function ChatPage() {
   });
 
   const handleMicToggle = useCallback(() => {
-    if (speech.isRecording) {
-      speech.sendVoiceComplete();
-      speech.stopRecording();
-    } else {
-      speech.startRecording();
-    }
+    speech.setRecordingEnabled(!speech.isRecording);
   }, [speech]);
 
   const handleSend = useCallback(() => {
@@ -215,7 +210,7 @@ export function ChatPage() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: initialization effect - runs once on mount
   useEffect(() => {
     checkGitStatus();
-    const timer = setTimeout(() => speech.startRecording(), 500);
+    const timer = setTimeout(() => speech.setRecordingEnabled(true), 500);
     return () => clearTimeout(timer);
   }, []);
 
