@@ -51,11 +51,4 @@ describe("chat-message", () => {
     );
   });
 
-  it("renders commit message", () => {
-    render(<ChatMessage type="commit" text="committed: fix bug" />);
-    expect(screen.getByText("committed: fix bug")).toBeInTheDocument();
-    expect(
-      screen.getByText("committed: fix bug").parentElement?.className,
-    ).toContain("font-mono");
-  });
 });

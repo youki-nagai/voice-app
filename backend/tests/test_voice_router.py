@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 
 from fastapi.testclient import TestClient
 
-from app.dependencies import get_claude_code_service, get_git_service
+from app.dependencies import get_claude_code_service
 from app.main import app
 from app.voice.router import _save_image
 
@@ -91,9 +91,8 @@ class TestStreamEndpoint:
     def teardown_method(self):
         app.dependency_overrides.clear()
 
-    def _override(self, mock_claude_code, mock_git):
+    def _override(self, mock_claude_code):
         app.dependency_overrides[get_claude_code_service] = lambda: mock_claude_code
-        app.dependency_overrides[get_git_service] = lambda: mock_git
 
     def test_given_claude_code_raises_when_stream_then_returns_error_event(self):
         mock_cc = MagicMock()
@@ -103,9 +102,7 @@ class TestStreamEndpoint:
             raise RuntimeError("Claude Code crashed")
 
         mock_cc.execute = MagicMock(side_effect=_raise_execute)
-        mock_git = MagicMock()
-        mock_git.auto_commit.return_value = None
-        self._override(mock_cc, mock_git)
+        self._override(mock_cc)
 
         response = self._client.post("/api/voice/stream", json={"text": "test"})
 
@@ -116,8 +113,7 @@ class TestStreamEndpoint:
 
     def test_given_whitespace_only_instruction_when_stream_then_returns_error(self):
         mock_cc = MagicMock()
-        mock_git = MagicMock()
-        self._override(mock_cc, mock_git)
+        self._override(mock_cc)
 
         response = self._client.post("/api/voice/stream", json={"text": "   "})
 
@@ -134,9 +130,7 @@ class TestStreamEndpoint:
                 {"type": "ai_done", "explanation": "done"},
             )
         )
-        mock_git = MagicMock()
-        mock_git.auto_commit.return_value = None
-        self._override(mock_cc, mock_git)
+        self._override(mock_cc)
 
         response = self._client.post("/api/voice/stream", json={"text": "test"})
 
@@ -152,9 +146,7 @@ class TestStreamEndpoint:
                 {"type": "ai_done", "explanation": "done"},
             )
         )
-        mock_git = MagicMock()
-        mock_git.auto_commit.return_value = None
-        self._override(mock_cc, mock_git)
+        self._override(mock_cc)
 
         response = self._client.post(
             "/api/voice/stream",
@@ -172,9 +164,7 @@ class TestStreamEndpoint:
                 {"type": "ai_done", "explanation": "done"},
             )
         )
-        mock_git = MagicMock()
-        mock_git.auto_commit.return_value = None
-        self._override(mock_cc, mock_git)
+        self._override(mock_cc)
 
         png_data = base64.b64encode(
             b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01"
