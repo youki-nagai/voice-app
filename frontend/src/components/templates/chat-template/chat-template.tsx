@@ -2,6 +2,7 @@ import type { Session } from "../../../hooks/use-session-manager";
 import type { ModelId, TimelineItem } from "../../../types/messages";
 import type { StatusDotStatus } from "../../atoms/status-dot/status-dot";
 import { ChatArea } from "../../organisms/chat-area/chat-area";
+import { CheatSheet } from "../../organisms/cheat-sheet/cheat-sheet";
 import { ControlBar } from "../../organisms/control-bar/control-bar";
 import { Header } from "../../organisms/header/header";
 import { SessionTabs } from "../../organisms/session-tabs/session-tabs";
@@ -12,6 +13,9 @@ interface ChatTemplateProps {
   onModelChange: (model: ModelId) => void;
   appStatus: StatusDotStatus;
   appStatusText: string;
+  // CheatSheet
+  isCheatSheetOpen: boolean;
+  onCheatSheetToggle: () => void;
   // SessionTabs
   sessions: Session[];
   activeSessionId: string;
@@ -43,6 +47,7 @@ export function ChatTemplate(props: ChatTemplateProps) {
         onModelChange={props.onModelChange}
         appStatus={props.appStatus}
         appStatusText={props.appStatusText}
+        onHelpToggle={props.onCheatSheetToggle}
       />
       <SessionTabs
         sessions={props.sessions}
@@ -65,6 +70,10 @@ export function ChatTemplate(props: ChatTemplateProps) {
         pendingImageUrls={props.pendingImageUrls}
         onImagePaste={props.onImagePaste}
         onImageRemove={props.onImageRemove}
+      />
+      <CheatSheet
+        isOpen={props.isCheatSheetOpen}
+        onClose={props.onCheatSheetToggle}
       />
     </>
   );
