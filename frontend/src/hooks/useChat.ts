@@ -1,5 +1,5 @@
-import { useCallback, useState } from 'react';
-import type { ChatMessage, ChatMessageType, ActionLog, ToolAction } from '../types/messages';
+import { useCallback, useRef, useState } from 'react';
+import type { ChatMessageType, ToolAction, TimelineItem } from '../types/messages';
 
 let idCounter = 0;
 function nextId(): string {
@@ -7,69 +7,86 @@ function nextId(): string {
 }
 
 export function useChat() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [processingText, setProcessingText] = useState<string | null>(null);
-  const [actionLogs, setActionLogs] = useState<ActionLog[]>([]);
-  const [isStreaming, setIsStreaming] = useState(false);
+  const [timeline, setTimeline] = useState<TimelineItem[]>([]);
+  const isStreamingRef = useRef(false);
 
   const addMessage = useCallback((text: string, type: ChatMessageType) => {
-    setMessages((prev) => [...prev, { id: nextId(), type, text }]);
-  }, []);
-
-  const appendAiChunk = useCallback((chunk: string) => {
-    setMessages((prev) => {
-      const last = prev[prev.length - 1];
-      if (last && last.type === 'ai' && isStreamingRef.current) {
-        return [...prev.slice(0, -1), { ...last, text: last.text + chunk }];
-      }
-      isStreamingRef.current = true;
-      return [...prev, { id: nextId(), type: 'ai', text: chunk }];
+    setTimeline((prev) => {
+      const filtered = prev.filter((item) => item.kind !== 'processing');
+      return [...filtered, { kind: 'message', data: { id: nextId(), type, text } }];
     });
   }, []);
 
-  // Use a ref to track streaming state without causing re-renders
-  const isStreamingRef = { current: false };
+  const setProcessingText = useCallback((text: string | null) => {
+    setTimeline((prev) => {
+      const filtered = prev.filter((item) => item.kind !== 'processing');
+      if (text === null) return filtered;
+      return [...filtered, { kind: 'processing', id: 'processing', text }];
+    });
+  }, []);
+
+  const appendAiChunk = useCallback((chunk: string) => {
+    setTimeline((prev) => {
+      const last = prev[prev.length - 1];
+      if (last && last.kind === 'message' && last.data.type === 'ai' && isStreamingRef.current) {
+        return [
+          ...prev.slice(0, -1),
+          { kind: 'message' as const, data: { ...last.data, text: last.data.text + chunk } },
+        ];
+      }
+      isStreamingRef.current = true;
+      return [...prev, { kind: 'message' as const, data: { id: nextId(), type: 'ai' as const, text: chunk } }];
+    });
+  }, []);
 
   const finalizeAiMessage = useCallback(() => {
     isStreamingRef.current = false;
   }, []);
 
   const addToolAction = useCallback((tool: string, text: string) => {
-    setActionLogs((prev) => {
-      const last = prev[prev.length - 1];
-      if (last && last.status === 'running') {
-        const updatedActions: ToolAction[] = last.actions.map((a) =>
+    setTimeline((prev) => {
+      const filtered = prev.filter((item) => item.kind !== 'processing');
+      const last = filtered[filtered.length - 1];
+
+      if (last && last.kind === 'action-log' && last.data.status === 'running') {
+        const updatedActions: ToolAction[] = last.data.actions.map((a) =>
           a.status === 'running' ? { ...a, status: 'done' as const } : a
         );
         updatedActions.push({ tool, text, status: 'running' });
-        return [...prev.slice(0, -1), { ...last, actions: updatedActions }];
+        return [
+          ...filtered.slice(0, -1),
+          { kind: 'action-log' as const, data: { ...last.data, actions: updatedActions } },
+        ];
       }
-      return [...prev, { id: nextId(), status: 'running', actions: [{ tool, text, status: 'running' }] }];
+      return [
+        ...filtered,
+        {
+          kind: 'action-log' as const,
+          data: { id: nextId(), status: 'running' as const, actions: [{ tool, text, status: 'running' }] },
+        },
+      ];
     });
   }, []);
 
   const finalizeActionLog = useCallback(() => {
-    setActionLogs((prev) => {
-      const last = prev[prev.length - 1];
-      if (last && last.status === 'running') {
-        const updatedActions = last.actions.map((a) => ({ ...a, status: 'done' as const }));
-        return [...prev.slice(0, -1), { ...last, status: 'done' as const, actions: updatedActions }];
-      }
-      return prev;
-    });
+    setTimeline((prev) =>
+      prev.map((item) => {
+        if (item.kind === 'action-log' && item.data.status === 'running') {
+          const updatedActions = item.data.actions.map((a) => ({ ...a, status: 'done' as const }));
+          return { ...item, data: { ...item.data, status: 'done' as const, actions: updatedActions } };
+        }
+        return item;
+      })
+    );
   }, []);
 
   return {
-    messages,
-    processingText,
-    actionLogs,
-    isStreaming,
+    timeline,
     addMessage,
     appendAiChunk,
     finalizeAiMessage,
     setProcessingText,
     addToolAction,
     finalizeActionLog,
-    setIsStreaming,
   };
 }

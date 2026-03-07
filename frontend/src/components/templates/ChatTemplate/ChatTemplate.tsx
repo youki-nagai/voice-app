@@ -1,7 +1,7 @@
 import { Header } from '../../organisms/Header/Header';
 import { ChatArea } from '../../organisms/ChatArea/ChatArea';
 import { ControlBar } from '../../organisms/ControlBar/ControlBar';
-import type { ModelId, ChatMessage, ActionLog } from '../../../types/messages';
+import type { ModelId, TimelineItem } from '../../../types/messages';
 import type { GitBadgeStatus } from '../../molecules/GitStatusBadge/GitStatusBadge';
 import type { StatusDotStatus } from '../../atoms/StatusDot/StatusDot';
 
@@ -15,9 +15,7 @@ interface ChatTemplateProps {
   appStatus: StatusDotStatus;
   appStatusText: string;
   // ChatArea
-  messages: ChatMessage[];
-  actionLogs: ActionLog[];
-  processingText: string | null;
+  timeline: TimelineItem[];
   // ControlBar
   textValue: string;
   onTextChange: (value: string) => void;
@@ -43,11 +41,7 @@ export function ChatTemplate(props: ChatTemplateProps) {
         appStatus={props.appStatus}
         appStatusText={props.appStatusText}
       />
-      <ChatArea
-        messages={props.messages}
-        actionLogs={props.actionLogs}
-        processingText={props.processingText}
-      />
+      <ChatArea timeline={props.timeline} />
       <ControlBar
         textValue={props.textValue}
         onTextChange={props.onTextChange}

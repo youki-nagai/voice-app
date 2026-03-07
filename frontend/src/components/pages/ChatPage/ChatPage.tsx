@@ -6,7 +6,7 @@ import { useGitStatus } from '../../../hooks/useGitStatus';
 import { useGitCommands } from '../../../hooks/useGitCommands';
 import { useSSE } from '../../../hooks/useSSE';
 import { detectGitCommand, detectModelCommand } from '../../../types/git';
-import type { ModelId, ServerMessage } from '../../../types/messages';
+import type { ModelId, ServerMessage, TimelineItem } from '../../../types/messages';
 import type { StatusDotStatus } from '../../atoms/StatusDot/StatusDot';
 
 export function ChatPage() {
@@ -115,7 +115,6 @@ export function ChatPage() {
   }, [isWaitingForAI, chat, selectedModel, pendingImageUrl, sse, executeGitCommand]);
 
   const handleSpeechComplete = useCallback((transcript: string) => {
-    // Finalize interim message as user message
     if (interimIdRef.current) {
       setInterimText(null);
       interimIdRef.current = null;
@@ -136,6 +135,7 @@ export function ChatPage() {
 
   const handleMicToggle = useCallback(() => {
     if (speech.isRecording) {
+      speech.sendVoiceComplete();
       speech.stopRecording();
     } else {
       speech.startRecording();
@@ -185,7 +185,6 @@ export function ChatPage() {
   // Initialize
   useEffect(() => {
     checkGitStatus();
-    // Auto-start recording
     const timer = setTimeout(() => speech.startRecording(), 500);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -222,10 +221,10 @@ export function ChatPage() {
     appStatusText = '録音中';
   }
 
-  // Build messages with interim
-  const displayMessages = [...chat.messages];
+  // Build display timeline with interim text appended
+  const displayTimeline: TimelineItem[] = [...chat.timeline];
   if (interimText) {
-    displayMessages.push({ id: 'interim', type: 'interim', text: interimText });
+    displayTimeline.push({ kind: 'message', data: { id: 'interim', type: 'interim', text: interimText } });
   }
 
   return (
@@ -237,9 +236,7 @@ export function ChatPage() {
       onGitStatusClick={handleGitStatusClick}
       appStatus={appStatus}
       appStatusText={appStatusText}
-      messages={displayMessages}
-      actionLogs={chat.actionLogs}
-      processingText={chat.processingText}
+      timeline={displayTimeline}
       textValue={textValue}
       onTextChange={setTextValue}
       onSend={handleSend}

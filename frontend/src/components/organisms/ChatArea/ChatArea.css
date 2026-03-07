@@ -4,7 +4,7 @@
   padding: 16px 20px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 
 .chat-area .processing {
