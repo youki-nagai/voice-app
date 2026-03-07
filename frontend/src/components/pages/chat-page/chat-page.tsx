@@ -4,7 +4,11 @@ import { useMultiChat } from "../../../hooks/use-multi-chat";
 import { useSessionManager } from "../../../hooks/use-session-manager";
 import { useSpeechRecognition } from "../../../hooks/use-speech-recognition";
 import { useSSE } from "../../../hooks/use-sse";
-import { detectModelCommand, getModelLabel } from "../../../types/commands";
+import {
+  detectAppCommand,
+  detectModelCommand,
+  getModelLabel,
+} from "../../../types/commands";
 import type {
   ModelId,
   ServerMessage,
@@ -143,12 +147,64 @@ export function ChatPage() {
         return;
       }
 
+      const appCmd = detectAppCommand(text);
+      if (appCmd) {
+        switch (appCmd.type) {
+          case "new-session": {
+            const newId = sessionManager.addSession();
+            chat.addMessage(newId, "新しいチャットを作成しました", "system");
+            return;
+          }
+          case "switch-session": {
+            const { sessions } = sessionManager;
+            let targetIndex: number | null = null;
+            if (appCmd.target === "next") {
+              const current = sessions.findIndex(
+                (s) => s.id === sessionManager.activeSessionId,
+              );
+              targetIndex =
+                current < sessions.length - 1 ? current + 1 : null;
+            } else if (appCmd.target === "prev") {
+              const current = sessions.findIndex(
+                (s) => s.id === sessionManager.activeSessionId,
+              );
+              targetIndex = current > 0 ? current - 1 : null;
+            } else {
+              const idx = appCmd.target - 1;
+              if (idx >= 0 && idx < sessions.length) targetIndex = idx;
+            }
+            if (targetIndex !== null) {
+              sessionManager.setActiveSession(sessions[targetIndex].id);
+              chat.addMessage(
+                sid,
+                `${sessions[targetIndex].name} に切り替えました`,
+                "system",
+              );
+            } else {
+              chat.addMessage(sid, "該当するチャットが見つかりません", "error");
+            }
+            return;
+          }
+          case "toggle-cheat-sheet":
+            toggleCheatSheet();
+            return;
+        }
+      }
+
       chat.setProcessingText(sid, "送信中...");
       chat.setIsWaitingForAI(sid, true);
       sendingSessionIdRef.current = sid;
       sse.sendStream(text, selectedModel, imagesToSend, sid);
     },
-    [chat, selectedModel, pendingImageUrls, sse, switchModel],
+    [
+      chat,
+      selectedModel,
+      pendingImageUrls,
+      sse,
+      switchModel,
+      sessionManager,
+      toggleCheatSheet,
+    ],
   );
 
   const handleSpeechComplete = useCallback(
