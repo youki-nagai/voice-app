@@ -348,11 +348,14 @@ export function ChatPage() {
       onCheatSheetToggle={toggleCheatSheet}
       focusedPanel={sessionManager.focusedPanel}
       onFocusPanel={sessionManager.setFocusedPanel}
+      onUnsplit={sessionManager.unsplit}
       isSidebarOpen={isSidebarOpen}
       onSidebarToggle={toggleSidebar}
       onSelectThread={handleSelectThread}
+      onSplitThread={sessionManager.splitSession}
       onNewChat={sessionManager.addSession}
       activeSessionId={activeId}
+      secondarySessionId={secondaryId}
       primary={{
         timeline: primaryTimeline,
         textValue: primaryTextValue,

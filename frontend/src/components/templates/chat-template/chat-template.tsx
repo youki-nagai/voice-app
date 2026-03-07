@@ -1,3 +1,4 @@
+import { X } from "lucide-react";
 import type { FocusedPanel } from "../../../hooks/use-session-manager";
 import type { ModelId, TimelineItem } from "../../../types/messages";
 import type { StatusDotStatus } from "../../atoms/status-dot/status-dot";
@@ -36,11 +37,14 @@ interface ChatTemplateProps {
   isSidebarOpen: boolean;
   onSidebarToggle: () => void;
   onSelectThread: (sessionId: string) => void;
+  onSplitThread: (sessionId: string) => void;
   onNewChat: () => string;
   activeSessionId: string;
+  secondarySessionId: string | null;
   // Panels
   focusedPanel: FocusedPanel;
   onFocusPanel: (panel: FocusedPanel) => void;
+  onUnsplit: () => void;
   // Primary panel
   primary: PanelProps;
   // Secondary panel (split view)
@@ -51,10 +55,12 @@ function ChatPanel({
   panel,
   isFocused,
   onFocus,
+  label,
 }: {
   panel: PanelProps;
   isFocused: boolean;
   onFocus: () => void;
+  label?: string;
 }) {
   return (
     <div
@@ -66,6 +72,11 @@ function ChatPanel({
         if (e.key === "Enter") onFocus();
       }}
     >
+      {label && (
+        <div className="border-b border-border px-3 py-1 text-[10px] font-bold text-muted-foreground">
+          {label}
+        </div>
+      )}
       <ChatArea timeline={panel.timeline} />
       <ControlBar
         textValue={panel.textValue}
@@ -85,6 +96,21 @@ function ChatPanel({
   );
 }
 
+function SplitDivider({ onUnsplit }: { onUnsplit: () => void }) {
+  return (
+    <div className="group relative flex w-1 shrink-0 items-center justify-center bg-border transition-colors hover:bg-accent/40">
+      <button
+        type="button"
+        title="分割を解除"
+        onClick={onUnsplit}
+        className="absolute z-10 rounded-full bg-zinc-700 p-0.5 opacity-0 shadow-md transition-opacity hover:bg-zinc-600 group-hover:opacity-100"
+      >
+        <X className="h-3 w-3 text-zinc-300" />
+      </button>
+    </div>
+  );
+}
+
 export function ChatTemplate(props: ChatTemplateProps) {
   return (
     <>
@@ -100,8 +126,10 @@ export function ChatTemplate(props: ChatTemplateProps) {
           isOpen={props.isSidebarOpen}
           onToggle={props.onSidebarToggle}
           onSelectThread={props.onSelectThread}
+          onSplitThread={props.onSplitThread}
           onNewChat={props.onNewChat}
           activeSessionId={props.activeSessionId}
+          secondarySessionId={props.secondarySessionId}
         />
         <div className="flex flex-1 min-w-0 flex-col">
           {props.secondary ? (
@@ -110,12 +138,14 @@ export function ChatTemplate(props: ChatTemplateProps) {
                 panel={props.primary}
                 isFocused={props.focusedPanel === "primary"}
                 onFocus={() => props.onFocusPanel("primary")}
+                label="L"
               />
-              <div className="w-px bg-border" />
+              <SplitDivider onUnsplit={props.onUnsplit} />
               <ChatPanel
                 panel={props.secondary}
                 isFocused={props.focusedPanel === "secondary"}
                 onFocus={() => props.onFocusPanel("secondary")}
+                label="R"
               />
             </div>
           ) : (
