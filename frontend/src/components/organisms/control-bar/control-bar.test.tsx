@@ -1,7 +1,12 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { ControlBar } from "./control-bar";
+
+function renderWithTooltip(ui: React.ReactElement) {
+  return render(<TooltipProvider>{ui}</TooltipProvider>);
+}
 
 describe("control-bar", () => {
   const defaultProps = {
@@ -21,26 +26,28 @@ describe("control-bar", () => {
   };
 
   it("renders text input", () => {
-    render(<ControlBar {...defaultProps} />);
+    renderWithTooltip(<ControlBar {...defaultProps} />);
     expect(
       screen.getByPlaceholderText("テキストで入力..."),
     ).toBeInTheDocument();
   });
 
   it("renders send button", () => {
-    render(<ControlBar {...defaultProps} />);
+    renderWithTooltip(<ControlBar {...defaultProps} />);
     expect(screen.getByTitle("送信")).toBeInTheDocument();
   });
 
   it("renders mic button", () => {
-    render(<ControlBar {...defaultProps} />);
+    renderWithTooltip(<ControlBar {...defaultProps} />);
     expect(screen.getByTitle("音声入力")).toBeInTheDocument();
   });
 
   it("calls onSend when send button clicked with text", async () => {
     const user = userEvent.setup();
     const onSend = vi.fn();
-    render(<ControlBar {...defaultProps} textValue="hello" onSend={onSend} />);
+    renderWithTooltip(
+      <ControlBar {...defaultProps} textValue="hello" onSend={onSend} />,
+    );
     await user.click(screen.getByTitle("送信"));
     expect(onSend).toHaveBeenCalledOnce();
   });
@@ -48,13 +55,15 @@ describe("control-bar", () => {
   it("calls onMicToggle when mic clicked", async () => {
     const user = userEvent.setup();
     const onMicToggle = vi.fn();
-    render(<ControlBar {...defaultProps} onMicToggle={onMicToggle} />);
+    renderWithTooltip(
+      <ControlBar {...defaultProps} onMicToggle={onMicToggle} />,
+    );
     await user.click(screen.getByTitle("音声入力"));
     expect(onMicToggle).toHaveBeenCalledOnce();
   });
 
   it("shows countdown ring when in countdown state", () => {
-    const { container } = render(
+    const { container } = renderWithTooltip(
       <ControlBar
         {...defaultProps}
         isRecording={true}
@@ -66,7 +75,7 @@ describe("control-bar", () => {
   });
 
   it("shows check icon when sent", () => {
-    const { container } = render(
+    const { container } = renderWithTooltip(
       <ControlBar {...defaultProps} isRecording={true} silenceState="sent" />,
     );
     const svg = container.querySelector(".lucide-check");
@@ -74,7 +83,7 @@ describe("control-bar", () => {
   });
 
   it("shows image preview when pendingImageUrls has items", () => {
-    render(
+    renderWithTooltip(
       <ControlBar
         {...defaultProps}
         pendingImageUrls={["data:image/png;base64,abc"]}
@@ -84,7 +93,7 @@ describe("control-bar", () => {
   });
 
   it("shows multiple image previews", () => {
-    render(
+    renderWithTooltip(
       <ControlBar
         {...defaultProps}
         pendingImageUrls={[
@@ -100,7 +109,7 @@ describe("control-bar", () => {
   it("calls onImageRemove with index when remove button clicked", async () => {
     const user = userEvent.setup();
     const onImageRemove = vi.fn();
-    render(
+    renderWithTooltip(
       <ControlBar
         {...defaultProps}
         pendingImageUrls={["data:image/png;base64,abc"]}

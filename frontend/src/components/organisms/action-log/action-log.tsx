@@ -51,7 +51,7 @@ export function ActionLog({ actions, status }: ActionLogProps) {
           </span>
           <Badge
             variant="secondary"
-            className="shrink-0 bg-indigo-950 px-1.5 py-px text-[10px] text-indigo-300 hover:bg-indigo-950"
+            className="shrink-0 px-1.5 py-px text-[10px]"
             data-testid="action-count"
           >
             {actions.length}
