@@ -68,19 +68,12 @@ class TestE2eSseStream:
         types = [e["type"] for e in events]
         assert "error" in types
 
-    def test_stream_returns_ai_chunks(self):
+    def test_stream_returns_ai_response(self):
         events = self._collect_sse_events({"text": "1+1は？"}, timeout=60)
         types = [e["type"] for e in events]
 
-        assert "status" in types, f"statusイベントがない: {types}"
-        assert "ai_chunk" in types or "ai_done" in types, f"AI応答イベントがない: {types}"
-        assert "complete" in types, f"completeイベントがない: {types}"
-
-    def test_stream_event_order(self):
-        events = self._collect_sse_events({"text": "hello"}, timeout=60)
-        types = [e["type"] for e in events]
-
         assert types[0] == "status", f"最初のイベントがstatusではない: {types[0]}"
+        assert "ai_chunk" in types or "ai_done" in types, f"AI応答イベントがない: {types}"
         assert types[-1] == "complete", f"最後のイベントがcompleteではない: {types[-1]}"
 
     def _collect_sse_events(self, body, timeout=30):
