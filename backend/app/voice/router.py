@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import json
 import tempfile
@@ -12,6 +13,8 @@ from sse_starlette import EventSourceResponse
 from app.claude_code.service import ClaudeCodeService
 from app.dependencies import ClaudeCodeDep, GitServiceDep
 from app.git.service import GitService
+
+KEEPALIVE_INTERVAL_SECONDS = 15
 
 router = APIRouter()
 
@@ -56,8 +59,33 @@ async def _generate_events(
         prompt = f"{instruction}\n\n添付画像: {image_path}"
 
     try:
-        async for event in claude_code.execute(prompt, model=model):
-            yield _sse(event)
+        event_queue: asyncio.Queue[dict | None] = asyncio.Queue()
+
+        async def _collect_events() -> None:
+            async for event in claude_code.execute(prompt, model=model):
+                await event_queue.put(event)
+            await event_queue.put(None)
+
+        task = asyncio.create_task(_collect_events())
+
+        try:
+            while True:
+                try:
+                    event = await asyncio.wait_for(event_queue.get(), timeout=KEEPALIVE_INTERVAL_SECONDS)
+                except TimeoutError:
+                    yield _sse({"type": "keepalive"})
+                    continue
+
+                if event is None:
+                    break
+                yield _sse(event)
+        finally:
+            if not task.done():
+                task.cancel()
+            try:
+                await task
+            except (asyncio.CancelledError, Exception):
+                pass
 
         commit_message = git_service.auto_commit(instruction)
         if commit_message:
