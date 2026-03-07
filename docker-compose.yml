@@ -2,7 +2,7 @@ services:
   postgres:
     image: postgres:17
     ports:
-      - "55432:5432"
+      - "0:5432"
     environment:
       POSTGRES_USER: voiceapp
       POSTGRES_PASSWORD: voiceapp

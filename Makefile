@@ -10,6 +10,7 @@ build-frontend:
 dev:
 	@MAIN_REPO=$$(git worktree list --porcelain | head -1 | sed 's/^worktree //'); \
 	REPO_ROOT=$$(pwd); \
+	eval "$$(./scripts/db-url.sh)"; \
 	if [ "$$REPO_ROOT" = "$$MAIN_REPO" ]; then \
 		API_PORT=8000; \
 	else \
@@ -17,8 +18,9 @@ dev:
 	fi; \
 	echo "Starting backend on port $$API_PORT"; \
 	echo "Starting frontend on http://localhost:5173"; \
+	echo "DATABASE_URL=$$DATABASE_URL"; \
 	trap 'kill 0' EXIT; \
-	(cd backend && uv run uvicorn app.main:app --reload --reload-dir . --host 0.0.0.0 --port $$API_PORT --env-file "$$MAIN_REPO/.env") & \
+	(cd backend && DATABASE_URL="$$DATABASE_URL" uv run uvicorn app.main:app --reload --reload-dir . --host 0.0.0.0 --port $$API_PORT --env-file "$$MAIN_REPO/.env") & \
 	(cd frontend && bun run dev) & \
 	wait
 
