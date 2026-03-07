@@ -21,7 +21,7 @@ router = APIRouter()
 class StreamRequest(BaseModel):
     text: str
     model: str = "claude-opus-4-6"
-    image: str | None = None
+    images: list[str] = []
 
 
 def _sse(data: dict) -> dict:
@@ -44,7 +44,7 @@ async def _generate_events(
     instruction: str,
     claude_code: ClaudeCodeService,
     model: str = "claude-opus-4-6",
-    image_path: Path | None = None,
+    image_paths: list[Path] | None = None,
 ) -> AsyncGenerator[dict]:
     if not instruction.strip():
         yield _sse({"type": "error", "text": "指示が空です"})
@@ -53,8 +53,9 @@ async def _generate_events(
     yield _sse({"type": "status", "text": "Claude Code 実行中..."})
 
     prompt = instruction
-    if image_path:
-        prompt = f"{instruction}\n\n添付画像: {image_path}"
+    if image_paths:
+        paths_str = " ".join(str(p) for p in image_paths)
+        prompt = f"{instruction}\n\n添付画像: {paths_str}"
 
     try:
         event_queue: asyncio.Queue[dict | None] = asyncio.Queue()
@@ -95,8 +96,8 @@ async def _generate_events(
 
         yield _sse({"type": "complete"})
     finally:
-        if image_path:
-            image_path.unlink(missing_ok=True)
+        for p in image_paths or []:
+            p.unlink(missing_ok=True)
 
 
 @router.post("/stream")
@@ -104,11 +105,11 @@ async def stream(
     req: StreamRequest,
     claude_code: ClaudeCodeDep,
 ):
-    image_path = _save_image(req.image) if req.image else None
+    image_paths = [_save_image(img) for img in req.images] or None
 
     async def event_generator() -> AsyncGenerator[dict]:
         try:
-            async for event in _generate_events(req.text, claude_code, model=req.model, image_path=image_path):
+            async for event in _generate_events(req.text, claude_code, model=req.model, image_paths=image_paths):
                 yield event
         except Exception as e:
             yield _sse({"type": "error", "text": f"エラー: {e}\n{traceback.format_exc()}"})

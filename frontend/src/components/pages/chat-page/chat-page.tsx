@@ -16,7 +16,7 @@ export function ChatPage() {
     useState<ModelId>("claude-opus-4-6");
   const [isWaitingForAI, setIsWaitingForAI] = useState(false);
   const [textValue, setTextValue] = useState("");
-  const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
+  const [pendingImageUrls, setPendingImageUrls] = useState<string[]>([]);
   const [interimText, setInterimText] = useState<string | null>(null);
 
   const chat = useChat();
@@ -106,11 +106,11 @@ export function ChatPage() {
     (text: string, skipUserDisplay = false) => {
       if (!text.trim() || isWaitingForAI) return;
 
-      const imageToSend = pendingImageUrl;
-      setPendingImageUrl(null);
+      const imagesToSend = [...pendingImageUrls];
+      setPendingImageUrls([]);
 
       if (!skipUserDisplay) {
-        chat.addMessage(text, "user", imageToSend ?? undefined);
+        chat.addMessage(text, "user", imagesToSend[0]);
       }
 
       const modelCmd = detectModelCommand(text);
@@ -121,9 +121,9 @@ export function ChatPage() {
 
       chat.setProcessingText("送信中...");
       setIsWaitingForAI(true);
-      sse.sendStream(text, selectedModel, imageToSend);
+      sse.sendStream(text, selectedModel, imagesToSend);
     },
-    [isWaitingForAI, chat, selectedModel, pendingImageUrl, sse, switchModel],
+    [isWaitingForAI, chat, selectedModel, pendingImageUrls, sse, switchModel],
   );
 
   const handleSpeechComplete = useCallback(
@@ -166,7 +166,10 @@ export function ChatPage() {
         if (!file) return;
         const reader = new FileReader();
         reader.onload = () => {
-          setPendingImageUrl(reader.result as string);
+          setPendingImageUrls((prev) => [
+            ...prev,
+            reader.result as string,
+          ]);
         };
         reader.readAsDataURL(file);
         return;
@@ -214,9 +217,11 @@ export function ChatPage() {
       onMicToggle={handleMicToggle}
       silenceTimerText={speech.silenceTimerText}
       isWaitingForAI={isWaitingForAI}
-      pendingImageUrl={pendingImageUrl}
+      pendingImageUrls={pendingImageUrls}
       onImagePaste={handleImagePaste}
-      onImageRemove={() => setPendingImageUrl(null)}
+      onImageRemove={(index) =>
+        setPendingImageUrls((prev) => prev.filter((_, i) => i !== index))
+      }
     />
   );
 }
