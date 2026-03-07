@@ -107,16 +107,23 @@ else
 fi
 echo ""
 
-echo "=== Step 7: Restart server (port: 8000) ==="
+echo "=== Step 7: Restart server (port: 8000 + 5173) ==="
 cd "$MAIN_REPO"
-cd frontend && bun run build && cd ..
+# 既存のdev serverプロセスをすべて停止
 pkill -f "uvicorn app.main:app" 2>/dev/null || true
+pkill -f "vite" 2>/dev/null || true
 sleep 2
+# バックエンド起動
 cd backend
-nohup uv run uvicorn app.main:app --reload --reload-dir . --reload-dir ../frontend/dist --host 0.0.0.0 --port 8000 --env-file "$MAIN_REPO/.env" > /dev/null 2>&1 &
+nohup uv run uvicorn app.main:app --reload --reload-dir . --host 0.0.0.0 --port 8000 --env-file "$MAIN_REPO/.env" > /dev/null 2>&1 &
+cd ..
+# フロントエンド（Vite HMR）起動
+cd frontend
+nohup bun run dev > /dev/null 2>&1 &
 cd ..
 wait_for_server 8000
-echo "Server restarted."
+wait_for_server 5173
+echo "Server restarted (backend: 8000, frontend: 5173)."
 echo ""
 
 echo "=== ALL STEPS COMPLETE ==="
