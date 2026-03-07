@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useKeyboardShortcut } from "../../../hooks/use-keyboard-shortcut";
 import { useMultiChat } from "../../../hooks/use-multi-chat";
 import { useSessionManager } from "../../../hooks/use-session-manager";
 import { useSpeechRecognition } from "../../../hooks/use-speech-recognition";
@@ -18,6 +19,13 @@ export function ChatPage() {
   const [textValue, setTextValue] = useState("");
   const [pendingImageUrls, setPendingImageUrls] = useState<string[]>([]);
   const [interimText, setInterimText] = useState<string | null>(null);
+  const [isCheatSheetOpen, setIsCheatSheetOpen] = useState(false);
+
+  const toggleCheatSheet = useCallback(() => {
+    setIsCheatSheetOpen((prev) => !prev);
+  }, []);
+
+  useKeyboardShortcut("/", toggleCheatSheet, { meta: true });
 
   const sessionManager = useSessionManager();
   const chat = useMultiChat();
@@ -246,6 +254,8 @@ export function ChatPage() {
       onModelChange={switchModel}
       appStatus={appStatus}
       appStatusText={appStatusText}
+      isCheatSheetOpen={isCheatSheetOpen}
+      onCheatSheetToggle={toggleCheatSheet}
       timeline={displayTimeline}
       textValue={textValue}
       onTextChange={setTextValue}

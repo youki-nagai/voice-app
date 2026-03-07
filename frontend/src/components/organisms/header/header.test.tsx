@@ -9,6 +9,7 @@ describe("header", () => {
     onModelChange: vi.fn(),
     appStatus: "connected" as const,
     appStatusText: "準備完了",
+    onHelpToggle: vi.fn(),
   };
 
   it("renders title", () => {
