@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useChat } from "../../../hooks/use-chat";
 import { useGitCommands } from "../../../hooks/use-git-commands";
 import { useGitStatus } from "../../../hooks/use-git-status";
@@ -20,7 +20,6 @@ export function ChatPage() {
   const [textValue, setTextValue] = useState("");
   const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
   const [interimText, setInterimText] = useState<string | null>(null);
-  const interimIdRef = useRef<string | null>(null);
 
   const chat = useChat();
   const { gitStatus, gitBranch, checkGitStatus } = useGitStatus();
@@ -146,10 +145,7 @@ export function ChatPage() {
 
   const handleSpeechComplete = useCallback(
     (transcript: string) => {
-      if (interimIdRef.current) {
-        setInterimText(null);
-        interimIdRef.current = null;
-      }
+      setInterimText(null);
       chat.addMessage(transcript, "user");
       sendMessage(transcript, true);
     },
