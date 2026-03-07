@@ -1,7 +1,6 @@
 ---
 name: commit-push
 description: 変更をコミットしてリモートに push する際に使用。PR 作成後は必ずブラウザで開く。
-allowed-tools: Bash(git add:*), Bash(git status:*), Bash(git commit:*), Bash(git push:*), Bash(git diff:*), Bash(git log:*), Bash(git branch:*), Bash(gh pr view:*), Bash(gh pr create:*)
 ---
 
 # コミット & プッシュ
