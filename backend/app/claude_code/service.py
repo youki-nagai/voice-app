@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 from collections.abc import AsyncGenerator
 from pathlib import Path
 from typing import ClassVar
@@ -23,11 +24,14 @@ class ClaudeCodeService:
         if ClaudeCodeService._session_id:
             cmd.extend(["--resume", ClaudeCodeService._session_id])
 
+        env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
+
         proc = await asyncio.create_subprocess_exec(
             *cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             cwd=str(self._project_root),
+            env=env,
         )
 
         sent_text_length = 0
