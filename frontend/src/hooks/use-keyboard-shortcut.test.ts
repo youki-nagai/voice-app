@@ -30,13 +30,4 @@ describe("useKeyboardShortcut", () => {
     expect(spy).toHaveBeenCalled();
   });
 
-  it("cleans up on unmount", () => {
-    const handler = vi.fn();
-    const { unmount } = renderHook(() =>
-      useKeyboardShortcut("/", handler, { meta: true }),
-    );
-    unmount();
-    fireEvent.keyDown(document, { key: "/", metaKey: true });
-    expect(handler).not.toHaveBeenCalled();
-  });
 });

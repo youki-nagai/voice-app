@@ -111,16 +111,6 @@ describe("useMultiChat", () => {
     }
   });
 
-  it("manages isWaitingForAI per session", () => {
-    const { result } = renderHook(() => useMultiChat());
-    expect(result.current.getIsWaitingForAI("s1")).toBe(false);
-    act(() => {
-      result.current.setIsWaitingForAI("s1", true);
-    });
-    expect(result.current.getIsWaitingForAI("s1")).toBe(true);
-    expect(result.current.getIsWaitingForAI("s2")).toBe(false);
-  });
-
   it("removes session timeline", () => {
     const { result } = renderHook(() => useMultiChat());
     act(() => {

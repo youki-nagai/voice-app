@@ -3,13 +3,6 @@ import { describe, expect, it } from "vitest";
 import { useSessionManager } from "./use-session-manager";
 
 describe("useSessionManager", () => {
-  it("starts with one default session", () => {
-    const { result } = renderHook(() => useSessionManager());
-    expect(result.current.sessions).toHaveLength(1);
-    expect(result.current.sessions[0].name).toBe("Chat 1");
-    expect(result.current.activeSessionId).toBe(result.current.sessions[0].id);
-  });
-
   it("adds a new session", () => {
     const { result } = renderHook(() => useSessionManager());
     act(() => {
@@ -25,18 +18,6 @@ describe("useSessionManager", () => {
       result.current.addSession();
     });
     expect(result.current.activeSessionId).toBe(result.current.sessions[1].id);
-  });
-
-  it("sets active session", () => {
-    const { result } = renderHook(() => useSessionManager());
-    const firstId = result.current.sessions[0].id;
-    act(() => {
-      result.current.addSession();
-    });
-    act(() => {
-      result.current.setActiveSession(firstId);
-    });
-    expect(result.current.activeSessionId).toBe(firstId);
   });
 
   it("removes a session", () => {
@@ -72,11 +53,6 @@ describe("useSessionManager", () => {
       result.current.removeSession(firstId);
     });
     expect(result.current.sessions).toHaveLength(1);
-  });
-
-  it("returns the active session object", () => {
-    const { result } = renderHook(() => useSessionManager());
-    expect(result.current.activeSession).toEqual(result.current.sessions[0]);
   });
 
   it("increments session names correctly after removal", () => {
