@@ -43,6 +43,27 @@ export function useSessionManager() {
     [activeSessionId],
   );
 
+  const switchByDirection = useCallback(
+    (direction: "next" | "prev"): Session | null => {
+      const currentIndex = sessions.findIndex((s) => s.id === activeSessionId);
+      const targetIndex =
+        direction === "next" ? currentIndex + 1 : currentIndex - 1;
+      const target = sessions[targetIndex] ?? null;
+      if (target) setActiveSessionId(target.id);
+      return target;
+    },
+    [sessions, activeSessionId],
+  );
+
+  const switchByIndex = useCallback(
+    (index: number): Session | null => {
+      const target = sessions[index] ?? null;
+      if (target) setActiveSessionId(target.id);
+      return target;
+    },
+    [sessions],
+  );
+
   const activeSession = useMemo(
     () => sessions.find((s) => s.id === activeSessionId) ?? sessions[0],
     [sessions, activeSessionId],
@@ -55,5 +76,7 @@ export function useSessionManager() {
     addSession,
     removeSession,
     setActiveSession: setActiveSessionId,
+    switchByDirection,
+    switchByIndex,
   };
 }

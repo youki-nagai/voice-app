@@ -29,6 +29,38 @@ def _format_tool_action(name: str, inp: dict) -> str:
     return f"tool: {name}"
 
 
+class _EventParser:
+    """assistant イベントからテキストチャンクとツールアクションを抽出する。"""
+
+    def __init__(self) -> None:
+        self._sent_text_length = 0
+        self._seen_tool_ids: set[str] = set()
+
+    def parse_assistant(self, event: dict) -> list[dict]:
+        results: list[dict] = []
+        message = event.get("message", {})
+        content_blocks = message.get("content", [])
+
+        full_text = "".join(b.get("text", "") for b in content_blocks if b.get("type") == "text")
+        if len(full_text) > self._sent_text_length:
+            results.append({"type": "ai_chunk", "text": full_text[self._sent_text_length :]})
+            self._sent_text_length = len(full_text)
+
+        for block in content_blocks:
+            if block.get("type") != "tool_use":
+                continue
+            tool_id = block.get("id", "")
+            if tool_id in self._seen_tool_ids:
+                continue
+            self._seen_tool_ids.add(tool_id)
+
+            name = block.get("name", "")
+            text = _format_tool_action(name, block.get("input", {}))
+            results.append({"type": "tool_action", "tool": name, "text": text})
+
+        return results
+
+
 class ClaudeCodeService:
     _session_ids: ClassVar[dict[str, str]] = {}
 
@@ -50,12 +82,7 @@ class ClaudeCodeService:
         if claude_session_id := event.get("session_id"):
             ClaudeCodeService._session_ids[session_key] = claude_session_id
 
-    async def execute(
-        self,
-        prompt: str,
-        model: str = "claude-opus-4-6",
-        session_id: str = "default",
-    ) -> AsyncGenerator[dict]:
+    def _build_command(self, prompt: str, model: str, session_id: str) -> list[str]:
         claude_bin = self._find_claude_binary()
         cmd = [
             claude_bin,
@@ -71,10 +98,18 @@ class ClaudeCodeService:
         claude_session_id = ClaudeCodeService._session_ids.get(session_id)
         if claude_session_id:
             cmd.extend(["--resume", claude_session_id])
+        return cmd
 
+    async def execute(
+        self,
+        prompt: str,
+        model: str = "claude-opus-4-6",
+        session_id: str = "default",
+    ) -> AsyncGenerator[dict]:
+        cmd = self._build_command(prompt, model, session_id)
         env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
 
-        logger.info("Claude Code CLI 起動: %s (cwd=%s)", claude_bin, self._project_root)
+        logger.info("Claude Code CLI 起動: %s (cwd=%s)", cmd[0], self._project_root)
 
         proc = await asyncio.create_subprocess_exec(
             *cmd,
@@ -85,8 +120,7 @@ class ClaudeCodeService:
             limit=1024 * 1024,
         )
 
-        sent_text_length = 0
-        seen_tool_ids: set[str] = set()
+        parser = _EventParser()
 
         async for raw_line in proc.stdout:
             line = raw_line.decode().strip()
@@ -103,25 +137,8 @@ class ClaudeCodeService:
                 self._update_session_id(event, session_id)
 
             elif event_type == "assistant":
-                message = event.get("message", {})
-                content_blocks = message.get("content", [])
-
-                full_text = "".join(b.get("text", "") for b in content_blocks if b.get("type") == "text")
-                if len(full_text) > sent_text_length:
-                    yield {"type": "ai_chunk", "text": full_text[sent_text_length:]}
-                    sent_text_length = len(full_text)
-
-                for block in content_blocks:
-                    if block.get("type") != "tool_use":
-                        continue
-                    tool_id = block.get("id", "")
-                    if tool_id in seen_tool_ids:
-                        continue
-                    seen_tool_ids.add(tool_id)
-
-                    name = block.get("name", "")
-                    text = _format_tool_action(name, block.get("input", {}))
-                    yield {"type": "tool_action", "tool": name, "text": text}
+                for parsed in parser.parse_assistant(event):
+                    yield parsed
 
             elif event_type == "result":
                 self._update_session_id(event, session_id)

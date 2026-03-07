@@ -10,6 +10,10 @@ function nextId(): string {
   return `mc-${++idCounter}`;
 }
 
+function withoutProcessing(items: TimelineItem[]): TimelineItem[] {
+  return items.filter((item) => item.kind !== "processing");
+}
+
 export function useMultiChat() {
   const [timelines, setTimelines] = useState<Record<string, TimelineItem[]>>(
     {},
@@ -50,13 +54,10 @@ export function useMultiChat() {
       type: ChatMessageType,
       imageUrl?: string,
     ) => {
-      updateTimeline(sessionId, (prev) => {
-        const filtered = prev.filter((item) => item.kind !== "processing");
-        return [
-          ...filtered,
-          { kind: "message", data: { id: nextId(), type, text, imageUrl } },
-        ];
-      });
+      updateTimeline(sessionId, (prev) => [
+        ...withoutProcessing(prev),
+        { kind: "message", data: { id: nextId(), type, text, imageUrl } },
+      ]);
     },
     [updateTimeline],
   );
@@ -64,7 +65,7 @@ export function useMultiChat() {
   const setProcessingText = useCallback(
     (sessionId: string, text: string | null) => {
       updateTimeline(sessionId, (prev) => {
-        const filtered = prev.filter((item) => item.kind !== "processing");
+        const filtered = withoutProcessing(prev);
         if (text === null) return filtered;
         return [...filtered, { kind: "processing", id: "processing", text }];
       });
@@ -110,7 +111,7 @@ export function useMultiChat() {
   const addToolAction = useCallback(
     (sessionId: string, tool: string, text: string) => {
       updateTimeline(sessionId, (prev) => {
-        const filtered = prev.filter((item) => item.kind !== "processing");
+        const filtered = withoutProcessing(prev);
         const last = filtered[filtered.length - 1];
 
         if (
@@ -171,6 +172,15 @@ export function useMultiChat() {
     [updateTimeline],
   );
 
+  const resetStreamState = useCallback(
+    (sessionId: string) => {
+      setIsWaitingForAI(sessionId, false);
+      setProcessingText(sessionId, null);
+      finalizeActionLog(sessionId);
+    },
+    [setIsWaitingForAI, setProcessingText, finalizeActionLog],
+  );
+
   const removeSessionData = useCallback((sessionId: string) => {
     setTimelines((prev) => {
       const next = { ...prev };
@@ -195,6 +205,7 @@ export function useMultiChat() {
     finalizeAiMessage,
     addToolAction,
     finalizeActionLog,
+    resetStreamState,
     removeSessionData,
   };
 }
