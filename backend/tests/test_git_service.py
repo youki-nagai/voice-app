@@ -6,10 +6,25 @@ from unittest.mock import patch
 from app.git.service import GitService
 
 
+def _init_git_repo() -> str:
+    tmpdir = tempfile.mkdtemp()
+    subprocess.run(["git", "init"], cwd=tmpdir, capture_output=True)
+    subprocess.run(["git", "config", "user.email", "test@test.com"], cwd=tmpdir, capture_output=True)
+    subprocess.run(["git", "config", "user.name", "test"], cwd=tmpdir, capture_output=True)
+    return tmpdir
+
+
+def _init_git_repo_with_commit() -> str:
+    tmpdir = _init_git_repo()
+    Path(tmpdir, "test.txt").write_text("test")
+    subprocess.run(["git", "add", "."], cwd=tmpdir, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "initial"], cwd=tmpdir, capture_output=True)
+    return tmpdir
+
+
 class TestGitServiceCheckGhCommand:
     def setup_method(self):
-        self._tmpdir = tempfile.mkdtemp()
-        self._service = GitService(project_root=self._tmpdir)
+        self._service = GitService(project_root=tempfile.mkdtemp())
 
     @patch("subprocess.run")
     def test_given_gh_not_installed_when_check_then_returns_error(self, mock_run):
@@ -54,10 +69,7 @@ class TestGitServiceCheckGhCommand:
 
 class TestGitServiceGetRepoInfo:
     def setup_method(self):
-        self._tmpdir = tempfile.mkdtemp()
-        subprocess.run(["git", "init"], cwd=self._tmpdir, capture_output=True)
-        subprocess.run(["git", "config", "user.email", "test@test.com"], cwd=self._tmpdir, capture_output=True)
-        subprocess.run(["git", "config", "user.name", "test"], cwd=self._tmpdir, capture_output=True)
+        self._tmpdir = _init_git_repo()
         self._service = GitService(project_root=self._tmpdir)
 
     def test_given_no_remote_when_get_repo_info_then_returns_none(self):
@@ -83,13 +95,7 @@ class TestGitServiceGetRepoInfo:
 
 class TestGitServiceCreateBranch:
     def setup_method(self):
-        self._tmpdir = tempfile.mkdtemp()
-        subprocess.run(["git", "init"], cwd=self._tmpdir, capture_output=True)
-        subprocess.run(["git", "config", "user.email", "test@test.com"], cwd=self._tmpdir, capture_output=True)
-        subprocess.run(["git", "config", "user.name", "test"], cwd=self._tmpdir, capture_output=True)
-        Path(self._tmpdir, "test.txt").write_text("test")
-        subprocess.run(["git", "add", "."], cwd=self._tmpdir, capture_output=True)
-        subprocess.run(["git", "commit", "-m", "initial"], cwd=self._tmpdir, capture_output=True)
+        self._tmpdir = _init_git_repo_with_commit()
         self._service = GitService(project_root=self._tmpdir)
 
     def test_given_valid_name_when_create_branch_then_switches_to_new_branch(self):
@@ -98,7 +104,6 @@ class TestGitServiceCreateBranch:
         assert result["success"] is True
         assert result["branch"] == "feature/test"
 
-        # 実際にブランチが切り替わっていることを確認
         branch_result = subprocess.run(
             ["git", "branch", "--show-current"], cwd=self._tmpdir, capture_output=True, text=True
         )
@@ -114,13 +119,7 @@ class TestGitServiceCreateBranch:
 
 class TestGitServiceGetStatus:
     def setup_method(self):
-        self._tmpdir = tempfile.mkdtemp()
-        subprocess.run(["git", "init"], cwd=self._tmpdir, capture_output=True)
-        subprocess.run(["git", "config", "user.email", "test@test.com"], cwd=self._tmpdir, capture_output=True)
-        subprocess.run(["git", "config", "user.name", "test"], cwd=self._tmpdir, capture_output=True)
-        Path(self._tmpdir, "test.txt").write_text("test")
-        subprocess.run(["git", "add", "."], cwd=self._tmpdir, capture_output=True)
-        subprocess.run(["git", "commit", "-m", "initial"], cwd=self._tmpdir, capture_output=True)
+        self._tmpdir = _init_git_repo_with_commit()
         self._service = GitService(project_root=self._tmpdir)
 
     def test_given_clean_repo_when_get_status_then_returns_clean(self):
@@ -139,8 +138,7 @@ class TestGitServiceGetStatus:
 
 class TestGitServicePush:
     def setup_method(self):
-        self._tmpdir = tempfile.mkdtemp()
-        self._service = GitService(project_root=self._tmpdir)
+        self._service = GitService(project_root=tempfile.mkdtemp())
 
     @patch("subprocess.run")
     def test_given_valid_repo_when_push_then_returns_success(self, mock_run):
@@ -165,8 +163,7 @@ class TestGitServicePush:
 
 class TestGitServiceCreatePr:
     def setup_method(self):
-        self._tmpdir = tempfile.mkdtemp()
-        self._service = GitService(project_root=self._tmpdir)
+        self._service = GitService(project_root=tempfile.mkdtemp())
 
     @patch("subprocess.run")
     def test_given_valid_params_when_create_pr_then_returns_url(self, mock_run):
@@ -195,17 +192,27 @@ class TestGitServiceCreatePr:
 
 class TestGitServiceGetLog:
     def setup_method(self):
-        self._tmpdir = tempfile.mkdtemp()
-        subprocess.run(["git", "init"], cwd=self._tmpdir, capture_output=True)
-        subprocess.run(["git", "config", "user.email", "test@test.com"], cwd=self._tmpdir, capture_output=True)
-        subprocess.run(["git", "config", "user.name", "test"], cwd=self._tmpdir, capture_output=True)
-        Path(self._tmpdir, "test.txt").write_text("test")
-        subprocess.run(["git", "add", "."], cwd=self._tmpdir, capture_output=True)
-        subprocess.run(["git", "commit", "-m", "initial commit"], cwd=self._tmpdir, capture_output=True)
+        self._tmpdir = _init_git_repo_with_commit()
         self._service = GitService(project_root=self._tmpdir)
 
     def test_given_commits_exist_when_get_log_then_returns_entries(self):
         result = self._service.get_log(limit=5)
 
         assert len(result) >= 1
-        assert "initial commit" in result[0]
+        assert "initial" in result[0]
+
+
+class TestGitServiceAutoCommit:
+    def setup_method(self):
+        self._tmpdir = _init_git_repo_with_commit()
+        self._service = GitService(project_root=self._tmpdir)
+
+    def test_given_changes_when_auto_commit_then_returns_message(self):
+        Path(self._tmpdir, "new.py").write_text("print(1)")
+        result = self._service.auto_commit("テストファイル追加")
+
+        assert result == "voice: テストファイル追加"
+
+    def test_given_no_changes_when_auto_commit_then_returns_none(self):
+        result = self._service.auto_commit("何も変更なし")
+        assert result is None
