@@ -1,21 +1,26 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useChatStream } from "../../../hooks/use-chat-stream";
 import { useKeyboardShortcut } from "../../../hooks/use-keyboard-shortcut";
 import { useMultiChat } from "../../../hooks/use-multi-chat";
 import { useSessionManager } from "../../../hooks/use-session-manager";
 import { useSpeechRecognition } from "../../../hooks/use-speech-recognition";
-import { useSSE } from "../../../hooks/use-sse";
 import {
   detectAppCommand,
   detectModelCommand,
   getModelLabel,
 } from "../../../types/commands";
-import type {
-  ModelId,
-  ServerMessage,
-  TimelineItem,
-} from "../../../types/messages";
+import type { ModelId, TimelineItem } from "../../../types/messages";
 import type { StatusDotStatus } from "../../atoms/status-dot/status-dot";
 import { ChatTemplate } from "../../templates/chat-template/chat-template";
+
+function computeAppStatus(
+  isWaitingForAI: boolean,
+  isRecording: boolean,
+): { status: StatusDotStatus; text: string } {
+  if (isWaitingForAI) return { status: "processing", text: "AI処理中" };
+  if (isRecording) return { status: "recording", text: "録音中" };
+  return { status: "connected", text: "準備完了" };
+}
 
 export function ChatPage() {
   const [selectedModel, setSelectedModel] =
@@ -35,73 +40,59 @@ export function ChatPage() {
   const chat = useMultiChat();
   const activeIdRef = useRef(sessionManager.activeSessionId);
   activeIdRef.current = sessionManager.activeSessionId;
-  const sendingSessionIdRef = useRef<string | null>(null);
 
-  const handleServerMessage = useCallback(
-    (msg: ServerMessage) => {
-      const sid = sendingSessionIdRef.current ?? activeIdRef.current;
-      switch (msg.type) {
-        case "status":
-          chat.setProcessingText(sid, msg.text);
-          chat.setIsWaitingForAI(sid, true);
-          break;
-        case "tool_action":
-          chat.setProcessingText(sid, null);
-          chat.addToolAction(sid, msg.tool, msg.text);
-          chat.setIsWaitingForAI(sid, true);
-          break;
-        case "ai_chunk":
-          chat.setProcessingText(sid, null);
-          chat.finalizeActionLog(sid);
-          chat.appendAiChunk(sid, msg.text);
-          break;
-        case "ai_done":
-          chat.finalizeAiMessage(sid);
-          break;
-        case "complete":
-          chat.setIsWaitingForAI(sid, false);
-          chat.setProcessingText(sid, null);
-          chat.finalizeActionLog(sid);
-          sendingSessionIdRef.current = null;
-          break;
-        case "error":
-          chat.setIsWaitingForAI(sid, false);
-          chat.setProcessingText(sid, null);
-          chat.finalizeActionLog(sid);
-          chat.addMessage(sid, msg.text, "error");
-          sendingSessionIdRef.current = null;
-          break;
-      }
+  const getActiveSessionId = useCallback(() => activeIdRef.current, []);
+
+  const stream = useChatStream({ chat, getActiveSessionId });
+
+  const switchModel = useCallback(
+    (model: ModelId) => {
+      setSelectedModel(model);
+      chat.addMessage(
+        activeIdRef.current,
+        `モデル切替: ${getModelLabel(model)}`,
+        "system",
+      );
     },
     [chat],
   );
 
-  const sse = useSSE({
-    onMessage: handleServerMessage,
-    onError: (error) => {
-      const sid = sendingSessionIdRef.current ?? activeIdRef.current;
-      chat.setIsWaitingForAI(sid, false);
-      chat.setProcessingText(sid, null);
-      chat.addMessage(sid, `エラー: ${error}`, "error");
-      sendingSessionIdRef.current = null;
-    },
-    onRetry: (retryCount, delay) => {
-      const sid = sendingSessionIdRef.current ?? activeIdRef.current;
-      chat.addMessage(
-        sid,
-        `ネットワークエラー。${delay / 1000}秒後にリトライします... (${retryCount}/${3})`,
-        "error",
-      );
-    },
-  });
+  const handleAppCommand = useCallback(
+    (text: string): boolean => {
+      const modelCmd = detectModelCommand(text);
+      if (modelCmd) {
+        switchModel(modelCmd);
+        return true;
+      }
 
-  const switchModel = useCallback(
-    (model: ModelId) => {
+      const appCmd = detectAppCommand(text);
+      if (!appCmd) return false;
+
       const sid = activeIdRef.current;
-      setSelectedModel(model);
-      chat.addMessage(sid, `モデル切替: ${getModelLabel(model)}`, "system");
+      switch (appCmd.type) {
+        case "new-session": {
+          const newId = sessionManager.addSession();
+          chat.addMessage(newId, "新しいチャットを作成しました", "system");
+          return true;
+        }
+        case "switch-session": {
+          const target =
+            appCmd.target === "next" || appCmd.target === "prev"
+              ? sessionManager.switchByDirection(appCmd.target)
+              : sessionManager.switchByIndex(appCmd.target - 1);
+          if (target) {
+            chat.addMessage(sid, `${target.name} に切り替えました`, "system");
+          } else {
+            chat.addMessage(sid, "該当するチャットが見つかりません", "error");
+          }
+          return true;
+        }
+        case "toggle-cheat-sheet":
+          toggleCheatSheet();
+          return true;
+      }
     },
-    [chat],
+    [chat, sessionManager, switchModel, toggleCheatSheet],
   );
 
   const sendMessage = useCallback(
@@ -116,76 +107,17 @@ export function ChatPage() {
         chat.addMessage(sid, text, "user", imagesToSend[0]);
       }
 
-      const modelCmd = detectModelCommand(text);
-      if (modelCmd) {
-        switchModel(modelCmd);
-        return;
-      }
+      if (handleAppCommand(text)) return;
 
-      const appCmd = detectAppCommand(text);
-      if (appCmd) {
-        switch (appCmd.type) {
-          case "new-session": {
-            const newId = sessionManager.addSession();
-            chat.addMessage(newId, "新しいチャットを作成しました", "system");
-            return;
-          }
-          case "switch-session": {
-            const { sessions } = sessionManager;
-            let targetIndex: number | null = null;
-            if (appCmd.target === "next") {
-              const current = sessions.findIndex(
-                (s) => s.id === sessionManager.activeSessionId,
-              );
-              targetIndex = current < sessions.length - 1 ? current + 1 : null;
-            } else if (appCmd.target === "prev") {
-              const current = sessions.findIndex(
-                (s) => s.id === sessionManager.activeSessionId,
-              );
-              targetIndex = current > 0 ? current - 1 : null;
-            } else {
-              const idx = appCmd.target - 1;
-              if (idx >= 0 && idx < sessions.length) targetIndex = idx;
-            }
-            if (targetIndex !== null) {
-              sessionManager.setActiveSession(sessions[targetIndex].id);
-              chat.addMessage(
-                sid,
-                `${sessions[targetIndex].name} に切り替えました`,
-                "system",
-              );
-            } else {
-              chat.addMessage(sid, "該当するチャットが見つかりません", "error");
-            }
-            return;
-          }
-          case "toggle-cheat-sheet":
-            toggleCheatSheet();
-            return;
-        }
-      }
-
-      chat.setProcessingText(sid, "送信中...");
-      chat.setIsWaitingForAI(sid, true);
-      sendingSessionIdRef.current = sid;
-      sse.sendStream(text, selectedModel, imagesToSend, sid);
+      stream.send(text, selectedModel, imagesToSend, sid);
     },
-    [
-      chat,
-      selectedModel,
-      pendingImageUrls,
-      sse,
-      switchModel,
-      sessionManager,
-      toggleCheatSheet,
-    ],
+    [chat, selectedModel, pendingImageUrls, stream, handleAppCommand],
   );
 
   const handleSpeechComplete = useCallback(
     (transcript: string) => {
-      const sid = activeIdRef.current;
       setInterimText(null);
-      chat.addMessage(sid, transcript, "user");
+      chat.addMessage(activeIdRef.current, transcript, "user");
       sendMessage(transcript, true);
     },
     [chat, sendMessage],
@@ -193,13 +125,8 @@ export function ChatPage() {
 
   const speech = useSpeechRecognition({
     onSpeechComplete: handleSpeechComplete,
-    onInterimUpdate: (text) => {
-      setInterimText(text);
-    },
-    onError: (error) => {
-      const sid = activeIdRef.current;
-      chat.addMessage(sid, error, "error");
-    },
+    onInterimUpdate: (text) => setInterimText(text),
+    onError: (error) => chat.addMessage(activeIdRef.current, error, "error"),
   });
 
   const handleMicToggle = useCallback(() => {
@@ -247,19 +174,11 @@ export function ChatPage() {
 
   const activeId = sessionManager.activeSessionId;
   const isWaitingForAI = chat.getIsWaitingForAI(activeId);
+  const { status: appStatus, text: appStatusText } = computeAppStatus(
+    isWaitingForAI,
+    speech.isRecording,
+  );
 
-  // Compute app status
-  let appStatus: StatusDotStatus = "connected";
-  let appStatusText = "準備完了";
-  if (isWaitingForAI) {
-    appStatus = "processing";
-    appStatusText = "AI処理中";
-  } else if (speech.isRecording) {
-    appStatus = "recording";
-    appStatusText = "録音中";
-  }
-
-  // Build display timeline with interim text appended
   const displayTimeline: TimelineItem[] = [...chat.getTimeline(activeId)];
   if (interimText) {
     displayTimeline.push({
@@ -268,7 +187,6 @@ export function ChatPage() {
     });
   }
 
-  // Collect session IDs that are waiting for AI
   const waitingSessionIds = sessionManager.sessions
     .filter((s) => chat.getIsWaitingForAI(s.id))
     .map((s) => s.id);

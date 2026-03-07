@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallbackRef } from "./use-callback-ref";
 
 const SILENCE_DELAY = 1000;
 
@@ -22,21 +23,9 @@ export function useSpeechRecognition({
   const enabledRef = useRef(false);
   const visibleRef = useRef(!document.hidden && document.hasFocus());
 
-  const onSpeechCompleteRef = useRef(onSpeechComplete);
-  const onInterimUpdateRef = useRef(onInterimUpdate);
-  const onErrorRef = useRef(onError);
-
-  useEffect(() => {
-    onSpeechCompleteRef.current = onSpeechComplete;
-  }, [onSpeechComplete]);
-
-  useEffect(() => {
-    onInterimUpdateRef.current = onInterimUpdate;
-  }, [onInterimUpdate]);
-
-  useEffect(() => {
-    onErrorRef.current = onError;
-  }, [onError]);
+  const onSpeechCompleteRef = useCallbackRef(onSpeechComplete);
+  const onInterimUpdateRef = useCallbackRef(onInterimUpdate);
+  const onErrorRef = useCallbackRef(onError);
 
   const SpeechRecognitionAPI =
     typeof window !== "undefined"
@@ -55,7 +44,7 @@ export function useSpeechRecognition({
     onSpeechCompleteRef.current(text);
     finalTranscriptRef.current = "";
     setSilenceTimerText("送信済み");
-  }, []);
+  }, [onSpeechCompleteRef]);
 
   const resetSilenceTimer = useCallback(() => {
     if (silenceTimeoutRef.current) {
@@ -123,7 +112,7 @@ export function useSpeechRecognition({
     };
 
     return recognition;
-  }, [SpeechRecognitionAPI, resetSilenceTimer]);
+  }, [SpeechRecognitionAPI, resetSilenceTimer, onInterimUpdateRef, onErrorRef]);
 
   const startActualRecognition = useCallback(() => {
     if (!recognitionRef.current) {
