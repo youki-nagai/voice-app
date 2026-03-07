@@ -42,7 +42,10 @@ export type AppCommand =
   | { type: "toggle-cheat-sheet" }
   | { type: "set-silence-delay"; seconds: number }
   | { type: "split" }
-  | { type: "unsplit" };
+  | { type: "unsplit" }
+  | { type: "focus-panel"; index: number }
+  | { type: "close-panel"; index?: number }
+  | { type: "select-thread"; index: number };
 
 function normalizeFullWidthDigits(s: string): string {
   return s.replace(/[０-９]/g, (ch) =>
@@ -93,6 +96,34 @@ export function detectAppCommand(text: string): AppCommand | null {
     }
   }
 
+  // Select thread by number: "スレッド1", "スレッド2を開いて"
+  const threadMatch = n.match(/スレッド(\d+)/);
+  if (threadMatch) {
+    return { type: "select-thread", index: Number(threadMatch[1]) };
+  }
+
+  // Close specific panel: "パネル2閉じて", "ペイン3閉じて"
+  const closePanelMatch = n.match(
+    /(?:パネル|ペイン)(\d+)(?:を)?(?:閉|とじ)/,
+  );
+  if (closePanelMatch) {
+    return { type: "close-panel", index: Number(closePanelMatch[1]) };
+  }
+
+  // Close focused panel: "パネル閉じて", "ペイン閉じて", "このパネル閉じて"
+  if (
+    n.includes("このパネル閉") ||
+    n.includes("このパネルとじ") ||
+    n.includes("このペイン閉") ||
+    n.includes("このペインとじ") ||
+    n.includes("パネル閉じ") ||
+    n.includes("パネルとじ") ||
+    n.includes("ペイン閉じ") ||
+    n.includes("ペインとじ")
+  ) {
+    return { type: "close-panel" };
+  }
+
   // Split
   if (
     n.includes("ペイン分割") ||
@@ -110,17 +141,19 @@ export function detectAppCommand(text: string): AppCommand | null {
   // Unsplit
   if (
     n.includes("分割解除") ||
-    n.includes("ペイン閉じ") ||
-    n.includes("パネル閉じ") ||
     n.includes("分割閉じ") ||
-    n.includes("ペインとじ") ||
-    n.includes("パネルとじ") ||
     n.includes("分割やめ") ||
     n.includes("1つに戻") ||
     n.includes("ひとつに戻") ||
     n.includes("一つに戻")
   ) {
     return { type: "unsplit" };
+  }
+
+  // Focus panel: "パネル1", "パネル2にフォーカス", "ペイン3"
+  const focusPanelMatch = n.match(/(?:パネル|ペイン)(\d+)/);
+  if (focusPanelMatch) {
+    return { type: "focus-panel", index: Number(focusPanelMatch[1]) };
   }
 
   // Cheat sheet

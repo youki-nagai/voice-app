@@ -191,6 +191,97 @@ describe("detectAppCommand", () => {
     it("detects '一つに戻して'", () => {
       expect(detectAppCommand("一つに戻して")).toEqual({ type: "unsplit" });
     });
+
+    it("detects '分割解除'", () => {
+      expect(detectAppCommand("分割解除して")).toEqual({ type: "unsplit" });
+    });
+  });
+
+  describe("focus-panel", () => {
+    it("detects 'パネル1'", () => {
+      expect(detectAppCommand("パネル1")).toEqual({
+        type: "focus-panel",
+        index: 1,
+      });
+    });
+
+    it("detects 'パネル2にフォーカス'", () => {
+      expect(detectAppCommand("パネル2にフォーカス")).toEqual({
+        type: "focus-panel",
+        index: 2,
+      });
+    });
+
+    it("detects 'ペイン3'", () => {
+      expect(detectAppCommand("ペイン3")).toEqual({
+        type: "focus-panel",
+        index: 3,
+      });
+    });
+
+    it("detects full-width digit 'パネル２'", () => {
+      expect(detectAppCommand("パネル２")).toEqual({
+        type: "focus-panel",
+        index: 2,
+      });
+    });
+  });
+
+  describe("close-panel", () => {
+    it("detects 'パネル2閉じて'", () => {
+      expect(detectAppCommand("パネル2閉じて")).toEqual({
+        type: "close-panel",
+        index: 2,
+      });
+    });
+
+    it("detects 'ペイン1閉じて'", () => {
+      expect(detectAppCommand("ペイン1閉じて")).toEqual({
+        type: "close-panel",
+        index: 1,
+      });
+    });
+
+    it("detects 'パネル閉じて' (no index)", () => {
+      expect(detectAppCommand("パネル閉じて")).toEqual({
+        type: "close-panel",
+      });
+    });
+
+    it("detects 'このパネル閉じて'", () => {
+      expect(detectAppCommand("このパネル閉じて")).toEqual({
+        type: "close-panel",
+      });
+    });
+
+    it("detects 'ペインとじて'", () => {
+      expect(detectAppCommand("ペインとじて")).toEqual({
+        type: "close-panel",
+      });
+    });
+  });
+
+  describe("select-thread", () => {
+    it("detects 'スレッド1'", () => {
+      expect(detectAppCommand("スレッド1")).toEqual({
+        type: "select-thread",
+        index: 1,
+      });
+    });
+
+    it("detects 'スレッド3を開いて'", () => {
+      expect(detectAppCommand("スレッド3を開いて")).toEqual({
+        type: "select-thread",
+        index: 3,
+      });
+    });
+
+    it("detects full-width digit 'スレッド２'", () => {
+      expect(detectAppCommand("スレッド２")).toEqual({
+        type: "select-thread",
+        index: 2,
+      });
+    });
   });
 
   it("returns null for unrelated text", () => {

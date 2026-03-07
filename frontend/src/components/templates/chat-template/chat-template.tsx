@@ -1,8 +1,9 @@
+import { Fragment, useCallback, useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import type { FocusedPanel } from "../../../hooks/use-session-manager";
+import type { SilenceState } from "../../../hooks/use-speech-recognition";
 import type { ModelId, TimelineItem } from "../../../types/messages";
 import type { StatusDotStatus } from "../../atoms/status-dot/status-dot";
 import { ChatArea } from "../../organisms/chat-area/chat-area";
@@ -12,18 +13,14 @@ import { Header } from "../../organisms/header/header";
 import { ThreadSidebar } from "../../organisms/thread-sidebar/thread-sidebar";
 
 export interface PanelProps {
+  sessionId: string;
   timeline: TimelineItem[];
-  textValue: string;
-  onTextChange: (value: string) => void;
-  onSend: () => void;
+  onSend: (text: string, images: string[]) => void;
   isRecording: boolean;
   onMicToggle: () => void;
-  silenceState: import("../../../hooks/use-speech-recognition").SilenceState;
+  silenceState: SilenceState;
   countdownKey: number;
   isWaitingForAI: boolean;
-  pendingImageUrls: string[];
-  onImagePaste: (e: React.ClipboardEvent) => void;
-  onImageRemove: (index: number) => void;
   silenceDelaySeconds: number;
   onSilenceDelayChange: (seconds: number) => void;
 }
@@ -43,16 +40,12 @@ interface ChatTemplateProps {
   onSelectThread: (sessionId: string) => void;
   onSplitThread: (sessionId: string) => void;
   onNewChat: () => string;
-  activeSessionId: string;
-  secondarySessionId: string | null;
+  panelSessionIds: string[];
   // Panels
-  focusedPanel: FocusedPanel;
-  onFocusPanel: (panel: FocusedPanel) => void;
-  onUnsplit: () => void;
-  // Primary panel
-  primary: PanelProps;
-  // Secondary panel (split view)
-  secondary: PanelProps | null;
+  focusedPanelIndex: number;
+  onFocusPanel: (index: number) => void;
+  onRemovePanel: (index: number) => void;
+  panels: PanelProps[];
 }
 
 function ChatPanel({
@@ -68,6 +61,34 @@ function ChatPanel({
   label?: string;
   onClose?: () => void;
 }) {
+  const [textValue, setTextValue] = useState("");
+  const [pendingImages, setPendingImages] = useState<string[]>([]);
+
+  const handleSend = useCallback(() => {
+    if (!textValue.trim()) return;
+    panel.onSend(textValue, pendingImages);
+    setTextValue("");
+    setPendingImages([]);
+  }, [textValue, pendingImages, panel]);
+
+  const handleImagePaste = useCallback((e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith("image/")) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          setPendingImages((prev) => [...prev, reader.result as string]);
+        };
+        reader.readAsDataURL(file);
+        return;
+      }
+    }
+  }, []);
+
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: panel focus area
     <div
@@ -101,17 +122,19 @@ function ChatPanel({
       )}
       <ChatArea timeline={panel.timeline} />
       <ControlBar
-        textValue={panel.textValue}
-        onTextChange={panel.onTextChange}
-        onSend={panel.onSend}
+        textValue={textValue}
+        onTextChange={setTextValue}
+        onSend={handleSend}
         isRecording={panel.isRecording}
         onMicToggle={panel.onMicToggle}
         silenceState={panel.silenceState}
         countdownKey={panel.countdownKey}
         isWaitingForAI={panel.isWaitingForAI}
-        pendingImageUrls={panel.pendingImageUrls}
-        onImagePaste={panel.onImagePaste}
-        onImageRemove={panel.onImageRemove}
+        pendingImageUrls={pendingImages}
+        onImagePaste={handleImagePaste}
+        onImageRemove={(index) =>
+          setPendingImages((prev) => prev.filter((_, i) => i !== index))
+        }
         silenceDelaySeconds={panel.silenceDelaySeconds}
         onSilenceDelayChange={panel.onSilenceDelayChange}
       />
@@ -120,6 +143,8 @@ function ChatPanel({
 }
 
 export function ChatTemplate(props: ChatTemplateProps) {
+  const isSplit = props.panels.length > 1;
+
   return (
     <TooltipProvider>
       <Header
@@ -136,34 +161,25 @@ export function ChatTemplate(props: ChatTemplateProps) {
           onSelectThread={props.onSelectThread}
           onSplitThread={props.onSplitThread}
           onNewChat={props.onNewChat}
-          activeSessionId={props.activeSessionId}
-          secondarySessionId={props.secondarySessionId}
+          panelSessionIds={props.panelSessionIds}
         />
         <div className="flex flex-1 min-w-0 flex-col">
-          {props.secondary ? (
-            <div className="flex flex-1 min-h-0">
-              <ChatPanel
-                panel={props.primary}
-                isFocused={props.focusedPanel === "primary"}
-                onFocus={() => props.onFocusPanel("primary")}
-                label="L"
-              />
-              <Separator orientation="vertical" />
-              <ChatPanel
-                panel={props.secondary}
-                isFocused={props.focusedPanel === "secondary"}
-                onFocus={() => props.onFocusPanel("secondary")}
-                label="R"
-                onClose={props.onUnsplit}
-              />
-            </div>
-          ) : (
-            <ChatPanel
-              panel={props.primary}
-              isFocused={true}
-              onFocus={() => {}}
-            />
-          )}
+          <div className="flex flex-1 min-h-0">
+            {props.panels.map((panel, index) => (
+              <Fragment key={panel.sessionId}>
+                {index > 0 && <Separator orientation="vertical" />}
+                <ChatPanel
+                  panel={panel}
+                  isFocused={isSplit ? props.focusedPanelIndex === index : true}
+                  onFocus={() => props.onFocusPanel(index)}
+                  label={isSplit ? String(index + 1) : undefined}
+                  onClose={
+                    isSplit ? () => props.onRemovePanel(index) : undefined
+                  }
+                />
+              </Fragment>
+            ))}
+          </div>
         </div>
       </div>
       <CheatSheet

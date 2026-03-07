@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useChatStream } from "../../../hooks/use-chat-stream";
 import { useKeyboardShortcut } from "../../../hooks/use-keyboard-shortcut";
 import { useMultiChat } from "../../../hooks/use-multi-chat";
-import { usePanelInput } from "../../../hooks/use-panel-input";
 import { useSessionManager } from "../../../hooks/use-session-manager";
 import {
   DEFAULT_SILENCE_DELAY,
@@ -40,9 +39,6 @@ export function ChatPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [silenceDelayMs, setSilenceDelayMs] = useState(DEFAULT_SILENCE_DELAY);
 
-  const primaryInput = usePanelInput();
-  const secondaryInput = usePanelInput();
-
   const silenceDelaySeconds = silenceDelayMs / 1000;
   const handleSilenceDelayChange = useCallback((seconds: number) => {
     setSilenceDelayMs(seconds * 1000);
@@ -75,184 +71,6 @@ export function ChatPage() {
       );
     },
     [chat],
-  );
-
-  const executeAppCommand = useCallback(
-    (appCmd: { type: string; [key: string]: unknown }) => {
-      const sid = focusedIdRef.current;
-      switch (appCmd.type) {
-        case "new-session": {
-          const newId = sessionManager.addSession();
-          chat.addMessage(newId, "新しいチャットを作成しました", "system");
-          break;
-        }
-        case "switch-session": {
-          const target =
-            appCmd.target === "next" || appCmd.target === "prev"
-              ? sessionManager.switchByDirection(
-                  appCmd.target as "next" | "prev",
-                )
-              : sessionManager.switchByIndex((appCmd.target as number) - 1);
-          if (target) {
-            chat.addMessage(sid, `${target.name} に切り替えました`, "system");
-          } else {
-            chat.addMessage(sid, "該当するチャットが見つかりません", "error");
-          }
-          break;
-        }
-        case "split": {
-          const newId = sessionManager.addSession();
-          sessionManager.splitSession(newId);
-          chat.addMessage(newId, "新しいセッションで分割しました", "system");
-          break;
-        }
-        case "unsplit":
-          if (sessionManager.isSplitView) {
-            sessionManager.unsplit();
-            chat.addMessage(sid, "分割を解除しました", "system");
-          } else {
-            chat.addMessage(sid, "分割されていません", "system");
-          }
-          break;
-        case "toggle-cheat-sheet":
-          toggleCheatSheet();
-          break;
-        case "set-silence-delay":
-          handleSilenceDelayChange(appCmd.seconds as number);
-          chat.addMessage(
-            sid,
-            `沈黙時間を${appCmd.seconds}秒に変更しました`,
-            "system",
-          );
-          break;
-      }
-    },
-    [chat, sessionManager, toggleCheatSheet, handleSilenceDelayChange],
-  );
-
-  const handleAppCommand = useCallback(
-    (text: string): boolean => {
-      const modelCmd = detectModelCommand(text);
-      if (modelCmd) {
-        switchModel(modelCmd);
-        return true;
-      }
-
-      const appCmd = detectAppCommand(text);
-      if (!appCmd) return false;
-
-      executeAppCommand(appCmd);
-      return true;
-    },
-    [switchModel, executeAppCommand],
-  );
-
-  const handleBackendCommand = useCallback(
-    (commandType: "model" | "app", command: Record<string, unknown>) => {
-      if (commandType === "model") {
-        switchModel(command.model_id as ModelId);
-      } else {
-        executeAppCommand(command as { type: string; [key: string]: unknown });
-      }
-    },
-    [switchModel, executeAppCommand],
-  );
-
-  const stream = useChatStream({
-    chat,
-    getActiveSessionId: getFocusedSessionId,
-    onCommand: handleBackendCommand,
-  });
-
-  const sendMessage = useCallback(
-    (text: string, images: string[] = [], skipUserDisplay = false) => {
-      const sid = focusedIdRef.current;
-      if (!text.trim() || chat.getIsWaitingForAI(sid)) return;
-
-      if (!skipUserDisplay) {
-        chat.addMessage(sid, text, "user", images[0]);
-      }
-
-      if (handleAppCommand(text)) return;
-
-      stream.send(text, selectedModel, images, sid);
-    },
-    [chat, selectedModel, stream, handleAppCommand],
-  );
-
-  const handlePanelSend = useCallback(
-    (
-      panel: "primary" | "secondary",
-      clearAndGetInput: () => { text: string; images: string[] } | null,
-    ) => {
-      const sessionId =
-        panel === "secondary"
-          ? sessionManager.secondarySessionId
-          : sessionManager.activeSessionId;
-      if (!sessionId) return;
-
-      const input = clearAndGetInput();
-      if (!input) return;
-
-      sessionManager.setFocusedPanel(panel);
-      focusedIdRef.current = sessionId;
-      sendMessage(input.text, input.images);
-    },
-    [sendMessage, sessionManager],
-  );
-
-  const handlePrimarySend = useCallback(
-    () => handlePanelSend("primary", primaryInput.clearAndGetInput),
-    [handlePanelSend, primaryInput.clearAndGetInput],
-  );
-
-  const handleSecondarySend = useCallback(
-    () => handlePanelSend("secondary", secondaryInput.clearAndGetInput),
-    [handlePanelSend, secondaryInput.clearAndGetInput],
-  );
-
-  const handleSpeechComplete = useCallback(
-    (transcript: string) => {
-      setInterimText(null);
-      chat.addMessage(focusedIdRef.current, transcript, "user");
-      sendMessage(transcript, [], true);
-    },
-    [chat, sendMessage],
-  );
-
-  const speech = useSpeechRecognition({
-    onSpeechComplete: handleSpeechComplete,
-    onInterimUpdate: (text) => setInterimText(text),
-    onError: (error) => chat.addMessage(focusedIdRef.current, error, "error"),
-    silenceDelay: silenceDelayMs,
-  });
-
-  const handleMicToggle = useCallback(() => {
-    speech.setRecordingEnabled(!speech.isRecording);
-  }, [speech]);
-
-  const handleImagePaste = useCallback(
-    (
-      e: React.ClipboardEvent,
-      setPendingImages: React.Dispatch<React.SetStateAction<string[]>>,
-    ) => {
-      const items = e.clipboardData?.items;
-      if (!items) return;
-      for (const item of Array.from(items)) {
-        if (item.type.startsWith("image/")) {
-          e.preventDefault();
-          const file = item.getAsFile();
-          if (!file) return;
-          const reader = new FileReader();
-          reader.onload = () => {
-            setPendingImages((prev) => [...prev, reader.result as string]);
-          };
-          reader.readAsDataURL(file);
-          return;
-        }
-      }
-    },
-    [],
   );
 
   const handleSelectThread = useCallback(
@@ -318,14 +136,195 @@ export function ChatPage() {
     [sessionManager, chat],
   );
 
+  const executeAppCommand = useCallback(
+    async (appCmd: { type: string; [key: string]: unknown }) => {
+      const sid = focusedIdRef.current;
+      switch (appCmd.type) {
+        case "new-session": {
+          const newId = sessionManager.addSession();
+          chat.addMessage(newId, "新しいチャットを作成しました", "system");
+          break;
+        }
+        case "switch-session": {
+          const target =
+            appCmd.target === "next" || appCmd.target === "prev"
+              ? sessionManager.switchByDirection(
+                  appCmd.target as "next" | "prev",
+                )
+              : sessionManager.switchByIndex((appCmd.target as number) - 1);
+          if (target) {
+            chat.addMessage(sid, `${target.name} に切り替えました`, "system");
+          } else {
+            chat.addMessage(sid, "該当するチャットが見つかりません", "error");
+          }
+          break;
+        }
+        case "split": {
+          const newId = sessionManager.addSession();
+          sessionManager.splitSession(newId);
+          chat.addMessage(newId, "新しいセッションで分割しました", "system");
+          break;
+        }
+        case "unsplit":
+          if (sessionManager.isSplitView) {
+            sessionManager.unsplit();
+            chat.addMessage(sid, "分割を解除しました", "system");
+          } else {
+            chat.addMessage(sid, "分割されていません", "system");
+          }
+          break;
+        case "focus-panel": {
+          const index = appCmd.index as number;
+          if (index >= 1 && index <= sessionManager.panels.length) {
+            sessionManager.setFocusedPanelIndex(index - 1);
+            chat.addMessage(sid, `パネル${index}にフォーカスしました`, "system");
+          } else {
+            chat.addMessage(sid, `パネル${index}は存在しません`, "error");
+          }
+          break;
+        }
+        case "close-panel": {
+          if (sessionManager.panels.length <= 1) {
+            chat.addMessage(sid, "最後のパネルは閉じられません", "system");
+          } else {
+            const closeIndex = appCmd.index !== undefined
+              ? (appCmd.index as number) - 1
+              : sessionManager.focusedPanelIndex;
+            if (closeIndex >= 0 && closeIndex < sessionManager.panels.length) {
+              sessionManager.removePanel(closeIndex);
+              chat.addMessage(sid, `パネル${closeIndex + 1}を閉じました`, "system");
+            } else {
+              chat.addMessage(sid, `パネル${appCmd.index ?? 0}は存在しません`, "error");
+            }
+          }
+          break;
+        }
+        case "select-thread": {
+          try {
+            const res = await fetch("/api/voice/threads");
+            if (res.ok) {
+              const threads: Array<{ session_id: string; title: string | null }> = await res.json();
+              const target = threads[(appCmd.index as number) - 1];
+              if (target) {
+                await handleSelectThread(target.session_id);
+                chat.addMessage(
+                  focusedIdRef.current,
+                  `スレッド「${target.title || "無題"}」を選択しました`,
+                  "system",
+                );
+              } else {
+                chat.addMessage(sid, `スレッド${appCmd.index}が見つかりません`, "error");
+              }
+            }
+          } catch {
+            chat.addMessage(sid, "スレッド一覧の取得に失敗しました", "error");
+          }
+          break;
+        }
+        case "toggle-cheat-sheet":
+          toggleCheatSheet();
+          break;
+        case "set-silence-delay":
+          handleSilenceDelayChange(appCmd.seconds as number);
+          chat.addMessage(
+            sid,
+            `沈黙時間を${appCmd.seconds}秒に変更しました`,
+            "system",
+          );
+          break;
+      }
+    },
+    [chat, sessionManager, toggleCheatSheet, handleSilenceDelayChange, handleSelectThread],
+  );
+
+  const handleAppCommand = useCallback(
+    async (text: string): Promise<boolean> => {
+      const modelCmd = detectModelCommand(text);
+      if (modelCmd) {
+        switchModel(modelCmd);
+        return true;
+      }
+
+      const appCmd = detectAppCommand(text);
+      if (!appCmd) return false;
+
+      await executeAppCommand(appCmd);
+      return true;
+    },
+    [switchModel, executeAppCommand],
+  );
+
+  const handleBackendCommand = useCallback(
+    (commandType: "model" | "app", command: Record<string, unknown>) => {
+      if (commandType === "model") {
+        switchModel(command.model_id as ModelId);
+      } else {
+        executeAppCommand(command as { type: string; [key: string]: unknown });
+      }
+    },
+    [switchModel, executeAppCommand],
+  );
+
+  const stream = useChatStream({
+    chat,
+    getActiveSessionId: getFocusedSessionId,
+    onCommand: handleBackendCommand,
+  });
+
+  const sendMessage = useCallback(
+    async (text: string, images: string[] = [], skipUserDisplay = false) => {
+      const sid = focusedIdRef.current;
+      if (!text.trim() || chat.getIsWaitingForAI(sid)) return;
+
+      if (!skipUserDisplay) {
+        chat.addMessage(sid, text, "user", images[0]);
+      }
+
+      if (await handleAppCommand(text)) return;
+
+      stream.send(text, selectedModel, images, sid);
+    },
+    [chat, selectedModel, stream, handleAppCommand],
+  );
+
+  const handlePanelSend = useCallback(
+    (panelIndex: number, text: string, images: string[]) => {
+      const sessionId = sessionManager.panels[panelIndex];
+      if (!sessionId) return;
+
+      sessionManager.setFocusedPanelIndex(panelIndex);
+      focusedIdRef.current = sessionId;
+      sendMessage(text, images);
+    },
+    [sendMessage, sessionManager],
+  );
+
+  const handleSpeechComplete = useCallback(
+    (transcript: string) => {
+      setInterimText(null);
+      chat.addMessage(focusedIdRef.current, transcript, "user");
+      sendMessage(transcript, [], true);
+    },
+    [chat, sendMessage],
+  );
+
+  const speech = useSpeechRecognition({
+    onSpeechComplete: handleSpeechComplete,
+    onInterimUpdate: (text) => setInterimText(text),
+    onError: (error) => chat.addMessage(focusedIdRef.current, error, "error"),
+    silenceDelay: silenceDelayMs,
+  });
+
+  const handleMicToggle = useCallback(() => {
+    speech.setRecordingEnabled(!speech.isRecording);
+  }, [speech]);
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: initialization effect - runs once on mount
   useEffect(() => {
     const timer = setTimeout(() => speech.setRecordingEnabled(true), 500);
     return () => clearTimeout(timer);
   }, []);
 
-  const activeId = sessionManager.activeSessionId;
-  const secondaryId = sessionManager.secondarySessionId;
   const focusedId = sessionManager.focusedSessionId;
   const isWaitingForAI = chat.getIsWaitingForAI(focusedId);
   const { status: appStatus, text: appStatusText } = computeAppStatus(
@@ -347,37 +346,31 @@ export function ChatPage() {
     return timeline;
   };
 
-  const buildPanelProps = (
-    panel: "primary" | "secondary",
-    sessionId: string,
-    input: typeof primaryInput,
-    onSend: () => void,
-  ): PanelProps => {
-    const showInterim =
-      panel === "primary"
-        ? sessionManager.focusedPanel === "primary" ||
-          !sessionManager.isSplitView
-        : sessionManager.focusedPanel === "secondary";
+  const panelPropsList: PanelProps[] = sessionManager.panels.map(
+    (sessionId, index) => {
+      const isFocused =
+        !sessionManager.isSplitView ||
+        sessionManager.focusedPanelIndex === index;
 
-    return {
-      timeline: buildTimeline(sessionId, showInterim),
-      textValue: input.textValue,
-      onTextChange: input.setTextValue,
-      onSend,
-      isRecording: speech.isRecording && sessionManager.focusedPanel === panel,
-      onMicToggle: handleMicToggle,
-      silenceState:
-        sessionManager.focusedPanel === panel ? speech.silenceState : "idle",
-      countdownKey: speech.countdownKey,
-      isWaitingForAI: chat.getIsWaitingForAI(sessionId),
-      pendingImageUrls: input.pendingImages,
-      onImagePaste: (e) => handleImagePaste(e, input.setPendingImages),
-      onImageRemove: (index) =>
-        input.setPendingImages((prev) => prev.filter((_, i) => i !== index)),
-      silenceDelaySeconds,
-      onSilenceDelayChange: handleSilenceDelayChange,
-    };
-  };
+      return {
+        sessionId,
+        timeline: buildTimeline(sessionId, isFocused),
+        onSend: (text: string, images: string[]) =>
+          handlePanelSend(index, text, images),
+        isRecording:
+          speech.isRecording && sessionManager.focusedPanelIndex === index,
+        onMicToggle: handleMicToggle,
+        silenceState:
+          sessionManager.focusedPanelIndex === index
+            ? speech.silenceState
+            : "idle",
+        countdownKey: speech.countdownKey,
+        isWaitingForAI: chat.getIsWaitingForAI(sessionId),
+        silenceDelaySeconds,
+        onSilenceDelayChange: handleSilenceDelayChange,
+      };
+    },
+  );
 
   return (
     <ChatTemplate
@@ -387,32 +380,16 @@ export function ChatPage() {
       appStatusText={appStatusText}
       isCheatSheetOpen={isCheatSheetOpen}
       onCheatSheetToggle={toggleCheatSheet}
-      focusedPanel={sessionManager.focusedPanel}
-      onFocusPanel={sessionManager.setFocusedPanel}
-      onUnsplit={sessionManager.unsplit}
+      focusedPanelIndex={sessionManager.focusedPanelIndex}
+      onFocusPanel={sessionManager.setFocusedPanelIndex}
+      onRemovePanel={sessionManager.removePanel}
       isSidebarOpen={isSidebarOpen}
       onSidebarToggle={toggleSidebar}
       onSelectThread={handleSelectThread}
       onSplitThread={sessionManager.splitSession}
       onNewChat={sessionManager.addSession}
-      activeSessionId={activeId}
-      secondarySessionId={secondaryId}
-      primary={buildPanelProps(
-        "primary",
-        activeId,
-        primaryInput,
-        handlePrimarySend,
-      )}
-      secondary={
-        secondaryId
-          ? buildPanelProps(
-              "secondary",
-              secondaryId,
-              secondaryInput,
-              handleSecondarySend,
-            )
-          : null
-      }
+      panelSessionIds={sessionManager.panels}
+      panels={panelPropsList}
     />
   );
 }
