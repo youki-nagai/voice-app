@@ -5,8 +5,6 @@ export interface Session {
   name: string;
 }
 
-export type FocusedPanel = "primary" | "secondary";
-
 let sessionCounter = 0;
 
 function createSession(name: string): Session {
@@ -17,21 +15,22 @@ export function useSessionManager() {
   const [sessions, setSessions] = useState<Session[]>(() => [
     createSession("Chat 1"),
   ]);
-  const [activeSessionId, setActiveSessionId] = useState<string>(
-    () => sessions[0].id,
-  );
-  const [secondarySessionId, setSecondarySessionId] = useState<string | null>(
-    null,
-  );
-  const [focusedPanel, setFocusedPanel] = useState<FocusedPanel>("primary");
+  const [panels, setPanels] = useState<string[]>(() => [sessions[0].id]);
+  const [focusedPanelIndex, setFocusedPanelIndex] = useState(0);
 
-  const isSplitView = secondarySessionId !== null;
+  const isSplitView = panels.length > 1;
+  const activeSessionId = panels[0];
+  const focusedSessionId = panels[focusedPanelIndex] ?? panels[0];
 
   const addSession = useCallback((): string => {
     const newSession = createSession(`Chat ${sessions.length + 1}`);
     setSessions((prev) => [...prev, newSession]);
-    setActiveSessionId(newSession.id);
-    setFocusedPanel("primary");
+    setPanels((prev) => {
+      const next = [...prev];
+      next[0] = newSession.id;
+      return next;
+    });
+    setFocusedPanelIndex(0);
     return newSession.id;
   }, [sessions.length]);
 
@@ -39,8 +38,17 @@ export function useSessionManager() {
     (id: string, name?: string) => {
       const existing = sessions.find((s) => s.id === id);
       if (existing) {
-        setActiveSessionId(id);
-        setFocusedPanel("primary");
+        setPanels((prev) => {
+          const idx = prev.indexOf(id);
+          if (idx >= 0) {
+            setFocusedPanelIndex(idx);
+            return prev;
+          }
+          const next = [...prev];
+          next[0] = id;
+          setFocusedPanelIndex(0);
+          return next;
+        });
         return;
       }
       const session: Session = {
@@ -48,125 +56,151 @@ export function useSessionManager() {
         name: name ?? `Chat ${sessions.length + 1}`,
       };
       setSessions((prev) => [...prev, session]);
-      setActiveSessionId(id);
-      setFocusedPanel("primary");
+      setPanels((prev) => {
+        const next = [...prev];
+        next[0] = id;
+        return next;
+      });
+      setFocusedPanelIndex(0);
     },
     [sessions],
   );
 
-  const removeSession = useCallback(
-    (id: string) => {
-      setSessions((prev) => {
-        if (prev.length <= 1) return prev;
-        const filtered = prev.filter((s) => s.id !== id);
+  const removeSession = useCallback((id: string) => {
+    setSessions((prev) => {
+      if (prev.length <= 1) return prev;
+      const filtered = prev.filter((s) => s.id !== id);
 
-        if (secondarySessionId === id) {
-          setSecondarySessionId(null);
-          setFocusedPanel("primary");
+      setPanels((prevPanels) => {
+        const panelIndex = prevPanels.indexOf(id);
+        if (panelIndex >= 0) {
+          if (prevPanels.length <= 1) {
+            const replacement = filtered[0];
+            if (replacement) return [replacement.id];
+            return prevPanels;
+          }
+          const nextPanels = prevPanels.filter((_, i) => i !== panelIndex);
+          setFocusedPanelIndex((fi) => Math.min(fi, nextPanels.length - 1));
+          return nextPanels;
         }
-
-        if (activeSessionId === id) {
-          const removedIndex = prev.findIndex((s) => s.id === id);
-          const newActive =
-            filtered[Math.min(removedIndex, filtered.length - 1)];
-          setActiveSessionId(newActive.id);
-          setFocusedPanel("primary");
-        }
-
-        return filtered;
+        return prevPanels;
       });
-    },
-    [activeSessionId, secondarySessionId],
-  );
+
+      return filtered;
+    });
+  }, []);
 
   const switchByDirection = useCallback(
     (direction: "next" | "prev"): Session | null => {
-      const currentIndex = sessions.findIndex((s) => s.id === activeSessionId);
+      const currentId = panels[focusedPanelIndex] ?? panels[0];
+      const currentIndex = sessions.findIndex((s) => s.id === currentId);
       const targetIndex =
         direction === "next" ? currentIndex + 1 : currentIndex - 1;
       const target = sessions[targetIndex] ?? null;
-      if (target) setActiveSessionId(target.id);
+      if (target) {
+        setPanels((prev) => {
+          const existingIdx = prev.indexOf(target.id);
+          if (existingIdx >= 0) {
+            setFocusedPanelIndex(existingIdx);
+            return prev;
+          }
+          const next = [...prev];
+          next[focusedPanelIndex] = target.id;
+          return next;
+        });
+      }
       return target;
     },
-    [sessions, activeSessionId],
+    [sessions, panels, focusedPanelIndex],
   );
 
   const switchByIndex = useCallback(
     (index: number): Session | null => {
       const target = sessions[index] ?? null;
-      if (target) setActiveSessionId(target.id);
+      if (target) {
+        setPanels((prev) => {
+          const existingIdx = prev.indexOf(target.id);
+          if (existingIdx >= 0) {
+            setFocusedPanelIndex(existingIdx);
+            return prev;
+          }
+          const next = [...prev];
+          next[focusedPanelIndex] = target.id;
+          return next;
+        });
+      }
       return target;
     },
-    [sessions],
+    [sessions, focusedPanelIndex],
   );
 
-  const splitSession = useCallback(
-    (id: string) => {
-      if (id === activeSessionId) return;
-      setSecondarySessionId(id);
-      setFocusedPanel("secondary");
-    },
-    [activeSessionId],
-  );
-
-  const unsplit = useCallback(() => {
-    setSecondarySessionId(null);
-    setFocusedPanel("primary");
+  const splitSession = useCallback((sessionId: string) => {
+    setPanels((prev) => {
+      const existingIndex = prev.indexOf(sessionId);
+      if (existingIndex >= 0) {
+        setFocusedPanelIndex(existingIndex);
+        return prev;
+      }
+      setFocusedPanelIndex(prev.length);
+      return [...prev, sessionId];
+    });
   }, []);
 
+  const removePanel = useCallback((index: number) => {
+    setPanels((prev) => {
+      if (prev.length <= 1) return prev;
+      const next = prev.filter((_, i) => i !== index);
+      setFocusedPanelIndex((fi) => Math.min(fi, next.length - 1));
+      return next;
+    });
+  }, []);
+
+  const unsplit = useCallback(() => {
+    setPanels((prev) => {
+      if (prev.length <= 1) return prev;
+      return [prev[focusedPanelIndex] ?? prev[0]];
+    });
+    setFocusedPanelIndex(0);
+  }, [focusedPanelIndex]);
+
   const selectSession = useCallback(
-    (id: string, panel?: FocusedPanel) => {
-      if (panel === "secondary" || (!panel && focusedPanel === "secondary")) {
-        if (id !== activeSessionId) {
-          setSecondarySessionId(id);
-          setFocusedPanel("secondary");
+    (id: string) => {
+      setPanels((prev) => {
+        const existingIndex = prev.indexOf(id);
+        if (existingIndex >= 0) {
+          setFocusedPanelIndex(existingIndex);
+          return prev;
         }
-      } else {
-        if (id !== secondarySessionId) {
-          setActiveSessionId(id);
-          setFocusedPanel("primary");
-        }
-      }
+        const next = [...prev];
+        next[focusedPanelIndex] = id;
+        return next;
+      });
     },
-    [activeSessionId, secondarySessionId, focusedPanel],
+    [focusedPanelIndex],
   );
 
   const activeSession = useMemo(
-    () => sessions.find((s) => s.id === activeSessionId) ?? sessions[0],
-    [sessions, activeSessionId],
+    () => sessions.find((s) => s.id === panels[0]) ?? sessions[0],
+    [sessions, panels],
   );
-
-  const secondarySession = useMemo(
-    () =>
-      secondarySessionId
-        ? (sessions.find((s) => s.id === secondarySessionId) ?? null)
-        : null,
-    [sessions, secondarySessionId],
-  );
-
-  const focusedSessionId =
-    focusedPanel === "secondary" && secondarySessionId
-      ? secondarySessionId
-      : activeSessionId;
 
   return {
     sessions,
+    panels,
     activeSessionId,
     activeSession,
-    secondarySessionId,
-    secondarySession,
     isSplitView,
-    focusedPanel,
+    focusedPanelIndex,
     focusedSessionId,
-    setFocusedPanel,
+    setFocusedPanelIndex,
     addSession,
     addSessionWithId,
     removeSession,
-    setActiveSession: setActiveSessionId,
     selectSession,
     switchByDirection,
     switchByIndex,
     splitSession,
+    removePanel,
     unsplit,
   };
 }

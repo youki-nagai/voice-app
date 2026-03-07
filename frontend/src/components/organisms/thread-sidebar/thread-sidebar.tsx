@@ -22,9 +22,17 @@ interface ThreadSidebarProps {
   onSelectThread: (sessionId: string) => void;
   onSplitThread: (sessionId: string) => void;
   onNewChat: () => void;
-  activeSessionId: string;
-  secondarySessionId: string | null;
+  panelSessionIds: string[];
 }
+
+const PANEL_COLORS = [
+  "bg-blue-500/20 text-blue-400",
+  "bg-emerald-500/20 text-emerald-400",
+  "bg-amber-500/20 text-amber-400",
+  "bg-purple-500/20 text-purple-400",
+  "bg-rose-500/20 text-rose-400",
+  "bg-cyan-500/20 text-cyan-400",
+];
 
 function formatDate(isoString: string): string {
   const date = new Date(isoString);
@@ -52,8 +60,7 @@ export function ThreadSidebar({
   onSelectThread,
   onSplitThread,
   onNewChat,
-  activeSessionId,
-  secondarySessionId,
+  panelSessionIds,
 }: ThreadSidebarProps) {
   const [threads, setThreads] = useState<ThreadSummary[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -99,7 +106,7 @@ export function ThreadSidebar({
     );
   }
 
-  const isSplitView = secondarySessionId !== null;
+  const isSplitView = panelSessionIds.length > 1;
 
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col border-r border-border bg-zinc-900">
@@ -151,17 +158,16 @@ export function ThreadSidebar({
         ) : (
           <ul className="py-1">
             {threads.map((thread, index) => {
-              const isPrimary = thread.session_id === activeSessionId;
-              const isSecondary = thread.session_id === secondarySessionId;
-              const isActive = isPrimary || isSecondary;
+              const panelIndex = panelSessionIds.indexOf(thread.session_id);
+              const isInPanel = panelIndex >= 0;
               const number = index + 1;
-              const canSplit = !isPrimary && !isSecondary;
+              const canSplit = !isInPanel;
 
               return (
                 <li key={thread.session_id}>
                   <div
                     className={`group flex w-full items-start gap-2 px-3 py-2 text-left text-xs transition-colors ${
-                      isActive
+                      isInPanel
                         ? "bg-accent text-accent-foreground"
                         : "text-muted-foreground hover:bg-zinc-800 hover:text-foreground"
                     }`}
@@ -176,14 +182,13 @@ export function ThreadSidebar({
                       </span>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          {isSplitView && isPrimary && (
-                            <span className="shrink-0 rounded bg-blue-500/20 px-1 text-[9px] font-bold leading-tight text-blue-400">
-                              L
-                            </span>
-                          )}
-                          {isSplitView && isSecondary && (
-                            <span className="shrink-0 rounded bg-emerald-500/20 px-1 text-[9px] font-bold leading-tight text-emerald-400">
-                              R
+                          {isSplitView && isInPanel && (
+                            <span
+                              className={`shrink-0 rounded px-1 text-[9px] font-bold leading-tight ${
+                                PANEL_COLORS[panelIndex % PANEL_COLORS.length]
+                              }`}
+                            >
+                              {panelIndex + 1}
                             </span>
                           )}
                           <span className="truncate">
@@ -211,7 +216,7 @@ export function ThreadSidebar({
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent side="right">
-                          <p>右パネルで開く</p>
+                          <p>新しいパネルで開く</p>
                         </TooltipContent>
                       </Tooltip>
                     )}
